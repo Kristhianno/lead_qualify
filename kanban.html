@@ -306,6 +306,27 @@
     word-break: break-word;
   }
 
+  .ai-insight {
+    font-size: 0.8rem;
+    color: var(--text);
+    line-height: 1.5;
+    background: var(--accent-soft);
+    border-left: 2px solid var(--accent);
+    border-radius: 6px;
+    padding: 8px 10px;
+    margin-bottom: 10px;
+  }
+
+  .ai-insight .ai-label {
+    display: block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 3px;
+  }
+
   .card-footer {
     display: flex;
     justify-content: space-between;
@@ -434,6 +455,13 @@
       lead.situacao_cadastral ? `<span class="tag ${situacaoClass}">${escapeHtml(lead.situacao_cadastral)}</span>` : ''
     ].join('');
 
+    const aiInsightHtml = (lead.resumo_ia || lead.abordagem_sugerida) ? `
+        <div class="ai-insight">
+          <span class="ai-label">Sugestão da IA</span>
+          ${lead.resumo_ia ? escapeHtml(lead.resumo_ia) + '<br>' : ''}
+          ${lead.abordagem_sugerida ? escapeHtml(lead.abordagem_sugerida) : ''}
+        </div>` : '';
+
     return `
       <article class="lead-card">
         <p class="empresa">${escapeHtml(empresaNome)}</p>
@@ -444,6 +472,7 @@
           ${escapeHtml(lead.email || 'Email não informado')}<br>
           ${escapeHtml(lead.telefone_lead || 'Telefone não informado')}
         </div>
+        ${aiInsightHtml}
         <div class="card-footer">
           <span>${escapeHtml(lead.fonte_enriquecimento || 'Fonte não informada')}</span>
           <span>${escapeHtml(formatTimestamp(lead.timestamp))}</span>

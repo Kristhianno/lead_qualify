@@ -388,6 +388,11 @@
     </div>
     <span class="field-error" id="err-lgpd_consentimento"></span>
 
+    <div style="position:absolute; left:-9999px; top:-9999px;" aria-hidden="true">
+      <label for="site">Site</label>
+      <input type="text" id="site" name="site" tabindex="-1" autocomplete="off">
+    </div>
+
     <div class="form-message error" id="formError"></div>
 
     <button type="submit" id="submitBtn">Quero falar com um especialista</button>
@@ -422,6 +427,7 @@
   const telefoneInput = document.getElementById('telefone');
   const ticketSelect = document.getElementById('ticket_medio_mensal');
   const lgpdCheckbox = document.getElementById('lgpd_consentimento');
+  const honeypotInput = document.getElementById('site');
 
   // ---------- Máscaras ----------
 
@@ -567,6 +573,14 @@
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     clearAllErrors();
+
+    // Honeypot: bots costumam preencher todos os campos, incluindo os ocultos.
+    // Um preenchimento aqui finge sucesso sem enviar nada ao webhook.
+    if (honeypotInput.value.trim()) {
+      form.style.display = 'none';
+      successPanel.classList.add('show');
+      return;
+    }
 
     if (!validateForm()) {
       return;
