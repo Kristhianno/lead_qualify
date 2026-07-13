@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fale com um especialista | Driva</title>
+<style>
+  :root {
+    --accent: #003355;
+    --accent-light: #0d4d78;
+    --accent-soft: rgba(0, 51, 85, 0.06);
+    --gold: #b08d57;
+    --bg-top: #eef2f6;
+    --bg-bottom: #dde5ec;
+    --card-bg: #ffffff;
+    --text: #16232e;
+    --text-muted: #6b7686;
+    --border: #dfe4ea;
+    --error: #b3261e;
+    --success: #1f7a3d;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 15% -10%, rgba(0, 51, 85, 0.06), transparent 60%),
+      radial-gradient(900px 500px at 100% 110%, rgba(176, 141, 87, 0.08), transparent 60%),
+      linear-gradient(160deg, var(--bg-top), var(--bg-bottom));
+    background-attachment: fixed;
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 24px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .card {
+    position: relative;
+    background: var(--card-bg);
+    border-radius: 18px;
+    box-shadow:
+      0 1px 2px rgba(16, 24, 40, 0.04),
+      0 24px 48px -12px rgba(0, 51, 85, 0.16),
+      0 0 0 1px rgba(0, 51, 85, 0.04);
+    max-width: 460px;
+    width: 100%;
+    padding: 48px 42px 40px;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--accent), var(--gold));
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 34px;
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 14px;
+  }
+
+  .eyebrow::before,
+  .eyebrow::after {
+    content: "";
+    width: 18px;
+    height: 1px;
+    background: var(--gold);
+    opacity: 0.6;
+  }
+
+  h1 {
+    font-size: 1.7rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--accent);
+    margin: 0 0 12px;
+    line-height: 1.25;
+  }
+
+  .subtitle {
+    color: var(--text-muted);
+    font-size: 0.94rem;
+    margin: 0;
+    line-height: 1.55;
+  }
+
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  select {
+    padding: 13px 15px;
+    border: 1.5px solid var(--border);
+    border-radius: 9px;
+    font-size: 0.98rem;
+    font-family: inherit;
+    color: var(--text);
+    background: #fbfcfd;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  }
+
+  input::placeholder {
+    color: #a9b2bd;
+  }
+
+  input:hover,
+  select:hover {
+    border-color: #c3ccd6;
+  }
+
+  input:focus,
+  select:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: #fff;
+    box-shadow: 0 0 0 4px var(--accent-soft);
+  }
+
+  input.invalid {
+    border-color: var(--error);
+  }
+
+  input.invalid:focus {
+    box-shadow: 0 0 0 4px rgba(179, 38, 30, 0.1);
+  }
+
+  select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' stroke='%23003355' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 15px center;
+    padding-right: 38px;
+    cursor: pointer;
+  }
+
+  .field-error {
+    font-size: 0.78rem;
+    color: var(--error);
+    min-height: 1em;
+    display: none;
+  }
+
+  .field-error.show {
+    display: block;
+  }
+
+  .checkbox-field {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 11px;
+    padding-top: 4px;
+  }
+
+  .checkbox-field input[type="checkbox"] {
+    margin-top: 2px;
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
+  .checkbox-field label {
+    font-weight: 400;
+    font-size: 0.83rem;
+    text-transform: none;
+    letter-spacing: normal;
+    color: var(--text-muted);
+    line-height: 1.5;
+    cursor: pointer;
+  }
+
+  button[type="submit"] {
+    margin-top: 10px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    color: #fff;
+    border: none;
+    border-radius: 9px;
+    padding: 15px 20px;
+    font-size: 0.92rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 0 10px 20px -8px rgba(0, 51, 85, 0.45);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  }
+
+  button[type="submit"]:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 14px 24px -8px rgba(0, 51, 85, 0.5);
+  }
+
+  button[type="submit"]:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  button[type="submit"]:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  .form-message {
+    display: none;
+    font-size: 0.88rem;
+    padding: 13px 15px;
+    border-radius: 9px;
+    margin-top: 2px;
+  }
+
+  .form-message.show {
+    display: block;
+  }
+
+  .form-message.error {
+    background: #fbeceb;
+    color: var(--error);
+    border: 1px solid rgba(179, 38, 30, 0.15);
+  }
+
+  .success-panel {
+    display: none;
+    text-align: center;
+    padding: 24px 0 8px;
+  }
+
+  .success-panel.show {
+    display: block;
+  }
+
+  .success-panel .icon {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 18px;
+    border-radius: 50%;
+    background: rgba(31, 122, 61, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .success-panel .icon svg {
+    width: 26px;
+    height: 26px;
+  }
+
+  .success-panel h2 {
+    color: var(--accent);
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin: 0 0 10px;
+  }
+
+  .success-panel p {
+    color: var(--text-muted);
+    margin: 0;
+    line-height: 1.6;
+    font-size: 0.94rem;
+  }
+
+  @media (max-width: 480px) {
+    .card {
+      padding: 36px 26px 32px;
+      border-radius: 14px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <header>
+    <span class="eyebrow">Driva</span>
+    <h1>Fale com um especialista</h1>
+    <p class="subtitle">Preencha os dados abaixo e agende uma demonstração personalizada da nossa plataforma de inteligência de mercado.</p>
+  </header>
+
+  <form id="leadForm" novalidate>
+    <div class="field">
+      <label for="nome">Nome completo</label>
+      <input type="text" id="nome" name="nome" required autocomplete="name">
+      <span class="field-error" id="err-nome"></span>
+    </div>
+
+    <div class="field">
+      <label for="email">Email corporativo</label>
+      <input type="email" id="email" name="email" required autocomplete="email">
+      <span class="field-error" id="err-email"></span>
+    </div>
+
+    <div class="field">
+      <label for="empresa">Nome da empresa</label>
+      <input type="text" id="empresa" name="empresa" autocomplete="organization">
+      <span class="field-error" id="err-empresa"></span>
+    </div>
+
+    <div class="field">
+      <label for="cnpj">CNPJ da empresa</label>
+      <input type="text" id="cnpj" name="cnpj" required inputmode="text" maxlength="18" placeholder="00.000.000/0000-00">
+      <span class="field-error" id="err-cnpj"></span>
+    </div>
+
+    <div class="field">
+      <label for="telefone">WhatsApp</label>
+      <input type="tel" id="telefone" name="telefone" required inputmode="numeric" maxlength="15" placeholder="(00) 00000-0000">
+      <span class="field-error" id="err-telefone"></span>
+    </div>
+
+    <div class="field">
+      <label for="ticket_medio_mensal">Qual o ticket médio mensal da sua operação?</label>
+      <select id="ticket_medio_mensal" name="ticket_medio_mensal" required>
+        <option value="" selected disabled>Selecione uma opção</option>
+        <option value="3000">Até R$ 5 mil/mês</option>
+        <option value="7500">R$ 5 mil a R$ 10 mil/mês</option>
+        <option value="15000">Acima de R$ 10 mil/mês</option>
+      </select>
+      <span class="field-error" id="err-ticket_medio_mensal"></span>
+    </div>
+
+    <div class="field checkbox-field">
+      <input type="checkbox" id="lgpd_consentimento" name="lgpd_consentimento" required>
+      <label for="lgpd_consentimento">Concordo em receber contato comercial e que meus dados sejam tratados conforme a Política de Privacidade.</label>
+    </div>
+    <span class="field-error" id="err-lgpd_consentimento"></span>
+
+    <div class="form-message error" id="formError"></div>
+
+    <button type="submit" id="submitBtn">Quero falar com um especialista</button>
+  </form>
+
+  <div class="success-panel" id="successPanel">
+    <div class="icon">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M20 6L9 17l-5-5" stroke="#1f7a3d" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <h2>Recebemos seus dados!</h2>
+    <p>Um especialista da Driva entrará em contato em breve para agendar sua demonstração.</p>
+  </div>
+</div>
+
+<script>
+  // TODO: substituir pela URL de produção do webhook do n8n (path /webhook/form-lead-driva)
+  const WEBHOOK_URL = "COLE_AQUI_A_URL_DO_WEBHOOK_N8N";
+
+  const form = document.getElementById('leadForm');
+  const submitBtn = document.getElementById('submitBtn');
+  const formError = document.getElementById('formError');
+  const successPanel = document.getElementById('successPanel');
+
+  const nomeInput = document.getElementById('nome');
+  const emailInput = document.getElementById('email');
+  const empresaInput = document.getElementById('empresa');
+  const cnpjInput = document.getElementById('cnpj');
+  const telefoneInput = document.getElementById('telefone');
+  const ticketSelect = document.getElementById('ticket_medio_mensal');
+  const lgpdCheckbox = document.getElementById('lgpd_consentimento');
+
+  // ---------- Máscaras ----------
+
+  function maskCNPJ(value) {
+    // Alfanumérico: mantém apenas letras/dígitos, uppercase, limita a 14 caracteres
+    let clean = value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 14);
+    let out = '';
+    for (let i = 0; i < clean.length; i++) {
+      if (i === 2 || i === 5) out += '.';
+      if (i === 8) out += '/';
+      if (i === 12) out += '-';
+      out += clean[i];
+    }
+    return out;
+  }
+
+  cnpjInput.addEventListener('input', (e) => {
+    const cursorAtEnd = e.target.selectionStart === e.target.value.length;
+    e.target.value = maskCNPJ(e.target.value);
+    if (cursorAtEnd) {
+      e.target.setSelectionRange(e.target.value.length, e.target.value.length);
+    }
+  });
+
+  function maskPhone(value) {
+    let digits = value.replace(/\D/g, '').slice(0, 11);
+    let out = '';
+    if (digits.length > 0) out += '(' + digits.slice(0, 2);
+    if (digits.length >= 2) out += ') ';
+    if (digits.length > 2) out += digits.slice(2, 7);
+    if (digits.length > 7) out += '-' + digits.slice(7, 11);
+    return out;
+  }
+
+  telefoneInput.addEventListener('input', (e) => {
+    e.target.value = maskPhone(e.target.value);
+  });
+
+  // ---------- Validação de CNPJ alfanumérico ----------
+  // A partir de julho de 2026 a Receita Federal emite CNPJs alfanuméricos:
+  // os 12 primeiros caracteres podem ser letras maiúsculas ou dígitos, os 2
+  // dígitos verificadores continuam numéricos. Para o cálculo, cada caractere
+  // é convertido pelo código ASCII menos 48 (ex.: "0"->0, "9"->9, "A"->17).
+
+  function charValue(ch) {
+    return ch.charCodeAt(0) - 48;
+  }
+
+  function calcDV(base, weights) {
+    let sum = 0;
+    for (let i = 0; i < base.length; i++) {
+      sum += charValue(base[i]) * weights[i];
+    }
+    const remainder = sum % 11;
+    return remainder < 2 ? 0 : 11 - remainder;
+  }
+
+  function isValidCNPJ(raw) {
+    const clean = raw.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (clean.length !== 14) return false;
+
+    // Os 2 últimos caracteres (dígitos verificadores) devem ser numéricos
+    if (!/^\d{2}$/.test(clean.slice(12))) return false;
+
+    // Rejeita sequências com todos os caracteres iguais (ex: "00000000000000")
+    if (/^(.)\1{13}$/.test(clean)) return false;
+
+    const base12 = clean.slice(0, 12);
+
+    const weights1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+    const dv1 = calcDV(base12, weights1);
+
+    const weights2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+    const dv2 = calcDV(base12 + String(dv1), weights2);
+
+    return clean === base12 + String(dv1) + String(dv2);
+  }
+
+  // ---------- Validação e envio ----------
+
+  function setFieldError(id, message) {
+    const el = document.getElementById('err-' + id);
+    const input = document.getElementById(id);
+    if (el) {
+      el.textContent = message || '';
+      el.classList.toggle('show', !!message);
+    }
+    if (input) {
+      input.classList.toggle('invalid', !!message);
+    }
+  }
+
+  function clearAllErrors() {
+    ['nome', 'email', 'empresa', 'cnpj', 'telefone', 'ticket_medio_mensal', 'lgpd_consentimento'].forEach(id => setFieldError(id, ''));
+    formError.classList.remove('show');
+    formError.textContent = '';
+  }
+
+  function isValidEmail(value) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  }
+
+  function validateForm() {
+    let valid = true;
+
+    if (!nomeInput.value.trim()) {
+      setFieldError('nome', 'Informe seu nome completo.');
+      valid = false;
+    }
+
+    if (!emailInput.value.trim() || !isValidEmail(emailInput.value.trim())) {
+      setFieldError('email', 'Informe um email corporativo válido.');
+      valid = false;
+    }
+
+    if (!cnpjInput.value.trim()) {
+      setFieldError('cnpj', 'Informe o CNPJ da empresa.');
+      valid = false;
+    } else if (!isValidCNPJ(cnpjInput.value)) {
+      setFieldError('cnpj', 'CNPJ inválido. Verifique os dados digitados.');
+      valid = false;
+    }
+
+    const phoneDigits = telefoneInput.value.replace(/\D/g, '');
+    if (!phoneDigits || phoneDigits.length < 10) {
+      setFieldError('telefone', 'Informe um WhatsApp válido com DDD.');
+      valid = false;
+    }
+
+    if (!ticketSelect.value) {
+      setFieldError('ticket_medio_mensal', 'Selecione uma opção.');
+      valid = false;
+    }
+
+    if (!lgpdCheckbox.checked) {
+      setFieldError('lgpd_consentimento', 'É necessário concordar para continuar.');
+      valid = false;
+    }
+
+    return valid;
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearAllErrors();
+
+    if (!validateForm()) {
+      return;
+    }
+
+    const cnpjClean = cnpjInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const phoneDigits = telefoneInput.value.replace(/\D/g, '');
+    const phoneIntl = '55' + phoneDigits;
+
+    const payload = {
+      nome: nomeInput.value.trim(),
+      email: emailInput.value.trim(),
+      empresa: empresaInput.value.trim(),
+      cnpj: cnpjClean,
+      telefone: phoneIntl,
+      ticket_medio_mensal: Number(ticketSelect.value)
+    };
+
+    submitBtn.disabled = true;
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = 'Enviando...';
+
+    try {
+      const response = await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error('Resposta não-2xx do servidor: ' + response.status);
+      }
+
+      form.style.display = 'none';
+      successPanel.classList.add('show');
+    } catch (err) {
+      formError.textContent = 'Não foi possível enviar seus dados agora. Verifique sua conexão e tente novamente em instantes.';
+      formError.classList.add('show');
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalText;
+    }
+  });
+</script>
+
+</body>
+</html>
