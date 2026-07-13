@@ -1,168 +1,116 @@
 # Guia de evolução do workflow n8n
 
-Este documento descreve, nó a nó, as 4 adições ao workflow existente no n8n
-(`automacoes-n8n.m5jmff.easypanel.host`). A ordem das seções é a ordem
-recomendada no canvas.
+O workflow completo e atualizado está em [`n8n/workflow.json`](../n8n/workflow.json)
+— pronto para colar direto no n8n. Este documento cobre só os passos manuais
+que não dá pra embutir num arquivo de workflow (credenciais, contas
+externas, colunas de planilha).
 
-Fluxo final:
+## Como aplicar
+
+1. Abra o workflow atual no n8n.
+2. Selecione todo o canvas (Ctrl+A) e apague, **ou** crie um workflow novo —
+   dependendo de quão confortável você está em substituir tudo de uma vez.
+   (Alternativa mais segura: duplique o workflow atual antes, como backup.)
+3. Abra `n8n/workflow.json`, copie todo o conteúdo (Ctrl+A, Ctrl+C).
+4. Cole direto no canvas do n8n (Ctrl+V) — o n8n importa workflows colados
+   como JSON automaticamente.
+5. Siga o checklist abaixo antes de ativar/testar.
+
+## O que mudou em relação ao fluxo original
 
 ```
-Webhook (form-lead-driva)
-  -> [1] IF: segurança (origem + honeypot)
-  -> Enriquecimento BrasilAPI (já existe)
-  -> [3] OpenAI: resumo_ia + abordagem_sugerida
-  -> Classificação em tier (já existe)
-  -> Persistência (já existe: onde quer que os leads sejam salvos hoje)
-       -> adicionar campos resumo_ia e abordagem_sugerida na gravação
-  -> [1b] IF: tier != desqualificado
-       -> [2] Twilio: alerta WhatsApp (somente se tier == quente)
-       -> [4] HubSpot: upsert contato + deal
+Webhook - Formulário Site
+  -> [NOVO] IF - Segurança (Origin + honeypot)
+       false -> [NOVO] Respond - Bloqueado (200 vazio)
+       true  -> Normalizar Payload (como antes)
+  -> Enriquecer BrasilAPI / OpenCNPJ (sem mudança)
+  -> Calcular Classificação (sem mudança)
+  -> [NOVO] Montar Prompt IA (monta o prompt da OpenAI)
+  -> [NOVO] OpenAI - Qualificação (chamada HTTP para a API da OpenAI)
+  -> [NOVO] Parse Resposta IA (extrai resumo_ia / abordagem_sugerida)
+  -> Salvar Lead na Planilha (2 colunas novas: resumo_ia, abordagem_sugerida)
+  -> IF Tier = Quente / Atenção (sem mudança)
+       -> Montar Resumo (Quente/Atenção) -> Enviar Resumo SDR (sem mudança)
+                                          -> [NOVO] HubSpot - Upsert Contato
 ```
 
----
+O alerta de WhatsApp via Evolution API (`Enviar Resumo SDR`) não mudou —
+já funcionava e continua funcionando exatamente como antes.
 
-## 1. Segurança do webhook (origem + honeypot)
-
-**Por quê:** hoje qualquer pessoa pode chamar o webhook diretamente (curl/Postman),
-sem passar pelo formulário, e disparar enriquecimento + IA + CRM à toa. Isso gera
-custo (chamadas de API, tokens de IA) e lixo no CRM.
-
-**Onde:** logo depois do nó `Webhook`, antes de qualquer enriquecimento.
-
-1. Adicione um nó **IF** logo após o `Webhook`.
-2. Condição 1 (string): `{{$json.headers.origin}}` **is equal to**
-   `https://kristhianno.github.io`
-   - Isso funciona porque o navegador sempre envia o header `Origin` em
-     requisições `fetch` cross-origin (o front-end está em `github.io`, o
-     webhook está em `easypanel.host`).
-3. Condição 2 (string, adicionar com "AND"): `{{$json.body.site}}` **is empty**
-   - Esse é o campo honeypot que o formulário já envia oculto. Se vier
-     preenchido, é bot.
-4. Ramo **false** (qualquer condição falhou) → conectar direto a um nó
-   **Respond to Webhook** retornando `200 OK` com corpo vazio (finja sucesso,
-   não dê pista pro bot) e **não conectar nada depois** — a execução para aí.
-5. Ramo **true** → segue para o restante do fluxo normalmente.
-
-Reforço opcional (rápido de fazer, vale a pena): no nó `Webhook`, aba
-**Options → Allowed Origins (CORS)**, preencha com
-`https://kristhianno.github.io`. Isso bloqueia o **preflight** do navegador
-para qualquer outro site, complementando a checagem acima (que cobre chamadas
-diretas via curl/Postman, que não fazem preflight).
+Optei por implementar a chamada da OpenAI e do HubSpot com o nó genérico
+**HTTP Request** (o mesmo padrão já usado para BrasilAPI/OpenCNPJ), em vez
+dos nodes nativos OpenAI/HubSpot do n8n — assim o JSON importa sem
+depender de versões específicas desses nodes na sua instância.
 
 ---
 
-## 2. Alerta de WhatsApp para leads quentes
+## Checklist antes de ativar
 
-**Por quê:** fecha o ciclo captura → ação. O vendedor é avisado em segundos
-quando um lead `quente` entra, em vez de depender de alguém abrir o Kanban.
+### 1. Credencial da OpenAI
 
-**Onde:** depois do nó que já classifica o `tier` (o mesmo que hoje alimenta
-`GET /leads-kanban`), em paralelo à gravação/HubSpot.
+1. n8n → **Credentials → New → Header Auth**.
+2. Name do header: `Authorization`. Value: `Bearer <sua-chave-nova>`
+   (gere uma chave nova em https://platform.openai.com/api-keys — nunca
+   reaproveite a que foi colada num chat).
+3. Salve com um nome tipo `OpenAI Header Auth`.
+4. Abra o nó **`OpenAI - Qualificação`** no workflow importado e selecione
+   essa credencial no campo de autenticação (ela não vem pré-selecionada
+   porque credenciais nunca são portáveis entre instâncias do n8n).
 
-1. Adicione um nó **IF**: condição `{{$json.tier}}` **is equal to** `quente`.
-2. No ramo **true**, adicione o nó nativo **Twilio** do n8n.
-   - Credencial: crie uma credencial Twilio no n8n com `Account SID` e
-     `Auth Token` (painel da Twilio → Console → Account Info).
-   - Resource: `SMS` → funciona também para WhatsApp preenchendo os números
-     no formato `whatsapp:+55...`.
-   - **From**: número do sandbox/WhatsApp Business da Twilio, ex.
-     `whatsapp:+14155238886` (sandbox) — em produção, migrar para um número
-     verificado da Twilio ou WhatsApp Cloud API.
-   - **To**: `whatsapp:+55<DDD><número do vendedor>` — pode vir de uma
-     variável de ambiente do n8n (`{{$env.SALES_WHATSAPP_NUMBER}}`) para não
-     ficar hardcoded no node.
-   - **Body** (exemplo de template):
-     ```
-     🔥 Lead quente na Driva!
-     Empresa: {{$json.razao_social || $json.empresa}}
-     Contato: {{$json.nome}} — {{$json.telefone}}
-     Ticket estimado: R$ {{$json.ticket_medio_mensal}}
-     CNAE: {{$json.cnae_descricao}}
-     ```
-3. Teste primeiro no sandbox da Twilio (é grátis e não exige aprovação do
-   Meta) antes de migrar para um número de produção.
+### 2. Credencial do HubSpot
 
----
+1. Crie uma conta HubSpot (grátis) em https://app.hubspot.com/signup, se
+   ainda não tiver.
+2. **Configurações (⚙) → Integrações → Private Apps → Create a private
+   app**.
+   - Nome: `n8n - Lead Qualify`.
+   - Scopes: `crm.objects.contacts.write`, `crm.objects.contacts.read`,
+     `crm.schemas.contacts.write`.
+   - Crie e copie o **token de acesso** (só aparece uma vez).
+3. Crie as propriedades customizadas de contato **antes** de rodar o
+   workflow: **Configurações → Propriedades → Contato → Criar
+   propriedade**:
+   - `cnpj` (texto de linha única)
+   - `ticket_medio_mensal` (número ou texto — o node envia como string)
+   - `lead_tier` (texto de linha única)
+   - `resumo_ia` (texto multi-linha)
+4. n8n → **Credentials → New → Header Auth** → Name: `Authorization`,
+   Value: `Bearer <token do passo 2>`. Salve como `HubSpot Header Auth`.
+5. Abra o nó **`HubSpot - Upsert Contato`** e selecione essa credencial.
 
-## 3. Camada de qualificação com OpenAI
+### 3. Colunas novas na planilha do Google Sheets
 
-**Por quê:** gera um resumo e uma sugestão de abordagem por lead, no espírito
-do "Driva Copilot" — mostra que a automação vai além de mover dado de A pra B.
+Na planilha `CadastroLeads` (aba `Leads`), adicione duas colunas no
+cabeçalho, com esses nomes exatos (sensível a maiúsculas/minúsculas):
+`resumo_ia` e `abordagem_sugerida`.
 
-**Onde:** logo depois do enriquecimento BrasilAPI (precisa de
-`razao_social`, `cnae_descricao`, `situacao_cadastral` já disponíveis) e antes
-da classificação de tier.
+### 4. Teste
 
-1. Adicione o nó nativo **OpenAI** (ou **Message a Model**, dependendo da
-   versão do n8n).
-   - Credencial: crie uma credencial OpenAI com sua API key.
-   - Model: `gpt-4o-mini` (custo baixo, suficiente para essa tarefa).
-   - Modo: **Chat** com "Response Format" = **JSON**.
-2. **System prompt**:
-   ```
-   Você é um SDR da Driva, uma plataforma de inteligência de mercado B2B.
-   Dado os dados de uma empresa que preencheu um formulário de contato,
-   responda SOMENTE em JSON válido com exatamente estas chaves:
-   {
-     "resumo_ia": "resumo de 1-2 frases sobre a empresa e a oportunidade",
-     "abordagem_sugerida": "1 frase com o melhor ângulo de abordagem comercial"
-   }
-   ```
-3. **User prompt** (usar expressões do n8n para interpolar os dados do item
-   atual):
-   ```
-   Empresa: {{$json.razao_social}}
-   CNAE: {{$json.cnae_descricao}}
-   Situação cadastral: {{$json.situacao_cadastral}}
-   Ticket médio informado: R$ {{$json.ticket_medio_mensal}}/mês
-   Nome do contato: {{$json.nome}}
-   ```
-4. Depois do nó OpenAI, adicione um nó **Set** (ou **Code**, se preferir
-   `JSON.parse`) para extrair `resumo_ia` e `abordagem_sugerida` da resposta
-   e mesclá-los de volta no item do lead, para que sigam junto no resto do
-   fluxo (persistência, HubSpot, WhatsApp).
+1. Ative o workflow.
+2. Envie um lead de teste pelo formulário (https://kristhianno.github.io/lead_qualify).
+3. Confira, na execução do n8n:
+   - `IF - Segurança` aprovou (true).
+   - `OpenAI - Qualificação` retornou 200 e `Parse Resposta IA` populou
+     `resumo_ia`/`abordagem_sugerida`.
+   - A linha na planilha tem as duas colunas novas preenchidas.
+   - Se o ticket informado for ≥ R$ 5 mil/mês (`quente` ou `atenção`):
+     o WhatsApp chegou (como já acontecia) **e** um contato novo apareceu
+     no HubSpot.
+4. Abra o Kanban (https://kristhianno.github.io/lead_qualify/kanban.html)
+   e confirme que o card do lead mostra o bloco "Sugestão da IA".
 
 ---
 
-## 4. Integração com HubSpot
+## Notas de manutenção
 
-**Por quê:** a Driva já integra nativamente com HubSpot — em vez de um Kanban
-paralelo, os leads também aparecem no CRM real, prontos pro time comercial
-trabalhar onde já trabalha.
-
-**Onde:** depois da classificação de tier, em paralelo ao alerta de
-WhatsApp. Recomendo **não** enviar leads `desqualificado` pro CRM (adicionar
-um IF antes: `{{$json.tier}}` **is not equal to** `desqualificado`).
-
-1. Crie uma **Private App** no HubSpot (Configurações → Integrações →
-   Private Apps) com escopos `crm.objects.contacts.write`,
-   `crm.objects.contacts.read`, `crm.objects.deals.write`,
-   `crm.schemas.contacts.write` (para criar propriedades customizadas).
-2. Antes de rodar o workflow, crie as propriedades customizadas de contato no
-   HubSpot (Configurações → Propriedades → Contato): `cnpj` (texto),
-   `ticket_medio_mensal` (número), `lead_tier` (texto/enumeração),
-   `resumo_ia` (texto multi-linha).
-3. No n8n, adicione o nó nativo **HubSpot**:
-   - Credencial: token da Private App criada no passo 1.
-   - Resource: `Contact`, Operation: `Upsert` (usar `email` como chave de
-     deduplicação).
-   - Mapear: `firstname`/`lastname` (a partir de `nome`), `email`, `phone`
-     (`telefone`), `company` (`razao_social` ou `empresa`), e as
-     propriedades customizadas `cnpj`, `ticket_medio_mensal`, `lead_tier`
-     (=`tier`), `resumo_ia`.
-4. Adicione um segundo nó **HubSpot** (Resource: `Deal`, Operation:
-   `Create`), associado ao contato criado acima, com o pipeline/estágio
-   variando conforme `tier` (ex.: `quente` → estágio "Qualificado",
-   `atencao` → estágio "Em nutrição").
-
----
-
-## Variáveis de ambiente sugeridas (n8n → Settings → Environment)
-
-| Variável | Uso |
-|---|---|
-| `SALES_WHATSAPP_NUMBER` | número do vendedor que recebe o alerta (item 2) |
-| `ALLOWED_ORIGIN` | `https://kristhianno.github.io` (item 1, evita hardcode) |
-
-Credenciais (Twilio, OpenAI, HubSpot) devem ficar sempre no **Credentials
-Manager** do n8n, nunca em variáveis de ambiente ou hardcoded nos nós.
+- **Custo controlado**: `IF - Segurança` bloqueia qualquer chamada direta
+  ao webhook antes de gastar com BrasilAPI/OpenAI/HubSpot.
+- **Resiliência**: tanto `OpenAI - Qualificação` quanto `HubSpot - Upsert
+  Contato` têm `onError: continueRegularOutput` — se a OpenAI ou o
+  HubSpot falharem (rate limit, timeout), o lead ainda é salvo na
+  planilha e o SDR ainda recebe o alerta de WhatsApp; só o
+  enriquecimento por IA / sincronização de CRM daquele lead específico
+  fica incompleto.
+- **Sem chave real em arquivo**: o `.env`/`.env.example` na raiz do repo
+  são só um checklist pessoal — as credenciais de verdade ficam sempre no
+  Credentials Manager do n8n (Header Auth), nunca em texto no repositório.

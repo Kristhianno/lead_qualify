@@ -13,15 +13,16 @@ inteligência de mercado, geração de leads, engajamento e IA.
    completa: nome, e-mail, CNPJ (inclusive o novo formato alfanumérico da
    Receita Federal, com dígito verificador calculado), WhatsApp e ticket médio
    mensal. Protegido contra bots com honeypot.
-2. **Enriquecimento** — o webhook do n8n consulta a BrasilAPI a partir do
-   CNPJ para trazer razão social, CNAE e situação cadastral.
+2. **Enriquecimento** — o webhook do n8n consulta a BrasilAPI (com fallback
+   para OpenCNPJ) a partir do CNPJ para trazer razão social, CNAE e situação
+   cadastral.
 3. **Qualificação com IA** — um modelo de linguagem (OpenAI) gera um resumo da
    empresa e uma sugestão de abordagem comercial por lead.
 4. **Classificação** — os leads são segmentados automaticamente em `quente`,
    `atenção` e `desqualificado`.
-5. **Ação** — leads quentes disparam um alerta de WhatsApp em tempo real para
-   o time comercial; todos os leads qualificados são sincronizados com o
-   HubSpot.
+5. **Ação** — leads `quente` e `atenção` disparam um alerta de WhatsApp em
+   tempo real para o time comercial via Evolution API; leads qualificados
+   são sincronizados com o HubSpot.
 6. **Visualização** — o Kanban (`kanban.html`) mostra os leads por coluna,
    com os dados enriquecidos e a sugestão da IA.
 
@@ -32,12 +33,12 @@ flowchart TD
     A[Formulário estático<br/>GitHub Pages] -->|POST /webhook/form-lead-driva| B[n8n: Webhook]
     B --> C{Segurança<br/>origem + honeypot}
     C -->|reprovado| X[200 vazio<br/>execução encerrada]
-    C -->|aprovado| D[BrasilAPI<br/>enriquecimento por CNPJ]
-    D --> E[OpenAI<br/>resumo + abordagem]
-    E --> F[Classificação<br/>tier: quente / atenção / desqualificado]
-    F --> G[(Persistência dos leads)]
-    F --> H{tier == quente?}
-    H -->|sim| I[Twilio<br/>alerta WhatsApp]
+    C -->|aprovado| D[BrasilAPI / OpenCNPJ<br/>enriquecimento por CNPJ]
+    D --> F[Classificação<br/>tier: quente / atenção / desqualificado]
+    F --> E[OpenAI<br/>resumo + abordagem]
+    E --> G[(Google Sheets<br/>persistência dos leads)]
+    F --> H{tier == quente<br/>ou atenção?}
+    H -->|sim| I[Evolution API<br/>alerta WhatsApp]
     F --> J{tier != desqualificado?}
     J -->|sim| K[HubSpot<br/>upsert contato + deal]
     G -->|GET /webhook/leads-kanban| L[Kanban estático<br/>GitHub Pages]
@@ -49,9 +50,10 @@ flowchart TD
 |---|---|
 | Front-end | HTML/CSS/JS estático, hospedado no GitHub Pages |
 | Automação/orquestração | [n8n](https://n8n.io) (self-hosted, Easypanel) |
-| Enriquecimento de dados | [BrasilAPI](https://brasilapi.com.br) |
+| Enriquecimento de dados | [BrasilAPI](https://brasilapi.com.br) (fallback OpenCNPJ) |
+| Persistência | Google Sheets |
 | Qualificação | OpenAI (`gpt-4o-mini`) |
-| Alertas | Twilio (WhatsApp) |
+| Alertas | Evolution API (WhatsApp) |
 | CRM | HubSpot |
 
 O passo a passo detalhado de cada nó do workflow n8n está em

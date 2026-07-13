@@ -1,0 +1,943 @@
+{
+  "name": "Captura Formulario - Enriquecimento BrasilAPI-OpenCNPJ - Kanban - Handoff Evolution API",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "form-lead-driva",
+        "responseMode": "responseNode",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://kristhianno.github.io"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              }
+            ]
+          }
+        }
+      },
+      "id": "9554848e-cc81-4392-bdb6-25892c864715",
+      "name": "Webhook - FormulÃ¡rio Site",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [384, 832],
+      "webhookId": "8e2048c8-7031-4316-bc98-a1b43e605d33"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "sec1",
+              "leftValue": "={{ $json.headers?.origin ?? $json.headers?.Origin ?? '' }}",
+              "rightValue": "https://kristhianno.github.io",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "sec2",
+              "leftValue": "={{ ($json.body?.site ?? $json.site ?? '').toString().trim() }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f1a2b3c4-0001-4000-8000-000000000001",
+      "name": "IF - Segurança",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [480, 660]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'ok' } }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://kristhianno.github.io"
+              }
+            ]
+          }
+        }
+      },
+      "id": "f1a2b3c4-0001-4000-8000-000000000002",
+      "name": "Respond - Bloqueado",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [592, 480]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "nome",
+              "type": "string",
+              "value": "={{ $json.body?.nome ?? $json.nome ?? '' }}"
+            },
+            {
+              "id": "a2",
+              "name": "email",
+              "type": "string",
+              "value": "={{ $json.body?.email ?? $json.email ?? '' }}"
+            },
+            {
+              "id": "a3",
+              "name": "empresa",
+              "type": "string",
+              "value": "={{ $json.body?.empresa ?? $json.empresa ?? '' }}"
+            },
+            {
+              "id": "a4",
+              "name": "cnpj",
+              "type": "string",
+              "value": "={{ ($json.body?.cnpj ?? $json.cnpj ?? '').toString().replace(/[^0-9A-Za-z]/g, '').toUpperCase() }}"
+            },
+            {
+              "id": "a5",
+              "name": "telefone_lead",
+              "type": "string",
+              "value": "={{ $json.body?.telefone ?? $json.telefone ?? '' }}"
+            },
+            {
+              "id": "a6",
+              "name": "ticket_medio_mensal",
+              "type": "number",
+              "value": "={{ Number($json.body?.ticket_medio_mensal ?? $json.ticket_medio_mensal ?? 0) }}"
+            },
+            {
+              "id": "a7",
+              "name": "telefone_sdr",
+              "type": "string",
+              "value": "5541991497748"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ca15f0e1-0323-4c07-bfbe-8960f14beda8",
+      "name": "Normalizar Payload",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [592, 832]
+    },
+    {
+      "parameters": {
+        "url": "=https://brasilapi.com.br/api/cnpj/v1/{{ $json.cnpj }}",
+        "options": {}
+      },
+      "id": "352fd906-84a7-4818-9142-041669b3ba58",
+      "name": "Enriquecer BrasilAPI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [784, 832],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ !!$json.cnpj }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "ea0a6d93-f3fb-4e32-9429-3861d78b4523",
+      "name": "IF BrasilAPI OK",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [992, 832]
+    },
+    {
+      "parameters": {
+        "jsCode": "const original = $('Normalizar Payload').first().json;\nconst api = items[0].json;\n\nreturn [{\n  json: {\n    ...original,\n    razao_social: api.razao_social || api.nome_fantasia || '',\n    cnae_descricao: api.cnae_fiscal_descricao || '',\n    porte: api.porte || '',\n    situacao_cadastral: api.descricao_situacao_cadastral || '',\n    capital_social: Number(api.capital_social) || 0,\n    fonte_enriquecimento: 'BrasilAPI'\n  }\n}];"
+      },
+      "id": "7814ed0c-5a62-4083-89dc-af279eba7f8b",
+      "name": "Formatar Dados BrasilAPI",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1280, 736]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.opencnpj.org/{{ $('Normalizar Payload').first().json.cnpj }}",
+        "options": {}
+      },
+      "id": "9a073a20-5ce2-4646-b434-0280fd956c1f",
+      "name": "Enriquecer OpenCNPJ",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1184, 992],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const original = $('Normalizar Payload').first().json;\nconst api = items[0].json;\nconst capitalSocialNum = Number((api.capital_social || '0').toString().replace(/\\./g, '').replace(',', '.')) || 0;\n\nreturn [{\n  json: {\n    ...original,\n    razao_social: api.razao_social || api.nome_fantasia || '',\n    cnae_descricao: api.cnae_principal || '',\n    porte: api.porte_empresa || '',\n    situacao_cadastral: api.situacao_cadastral || '',\n    capital_social: capitalSocialNum,\n    fonte_enriquecimento: 'OpenCNPJ'\n  }\n}];"
+      },
+      "id": "a8d47298-1d61-4400-a08d-5b51d93d48b8",
+      "name": "Formatar Dados OpenCNPJ",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1392, 992]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = items[0].json;\nconst ticket = Number(item.ticket_medio_mensal) || 0;\n\nlet tier = 'desqualificado';\nif (ticket > 10000) tier = 'quente';\nelse if (ticket >= 5000) tier = 'atencao';\n\nreturn [{\n  json: {\n    ...item,\n    tier,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "9f0aab5e-fc14-4f91-b3e2-fc8b02ea6910",
+      "name": "Calcular ClassificaÃ§Ã£o",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1584, 832]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = items[0].json;\n\nconst systemPrompt = 'Você é um SDR da Driva, uma plataforma de inteligência de mercado B2B. Dado os dados de uma empresa que preencheu um formulário de contato, responda SOMENTE em JSON válido com duas chaves: resumo_ia (resumo de 1 a 2 frases sobre a empresa e a oportunidade) e abordagem_sugerida (1 frase com o melhor ângulo de abordagem comercial). Não inclua nenhum texto fora do JSON.';\n\nconst userPrompt = [\n  `Empresa: ${item.razao_social || item.empresa}`,\n  `CNAE: ${item.cnae_descricao}`,\n  `Situação cadastral: ${item.situacao_cadastral}`,\n  `Ticket médio informado: R$ ${item.ticket_medio_mensal}/mês`,\n  `Tier calculado: ${item.tier}`,\n  `Nome do contato: ${item.nome}`\n].join('\\n');\n\nreturn [{\n  json: {\n    ...item,\n    openai_request_body: JSON.stringify({\n      model: 'gpt-4o-mini',\n      response_format: { type: 'json_object' },\n      messages: [\n        { role: 'system', content: systemPrompt },\n        { role: 'user', content: userPrompt }\n      ]\n    })\n  }\n}];"
+      },
+      "id": "f1a2b3c4-0001-4000-8000-000000000003",
+      "name": "Montar Prompt IA",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1720, 832]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.openai_request_body }}",
+        "options": {}
+      },
+      "id": "f1a2b3c4-0001-4000-8000-000000000004",
+      "name": "OpenAI - Qualificação",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1900, 832],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const original = $('Montar Prompt IA').first().json;\nlet resumo_ia = '';\nlet abordagem_sugerida = '';\n\ntry {\n  const content = items[0].json?.choices?.[0]?.message?.content || '{}';\n  const result = JSON.parse(content);\n  resumo_ia = result.resumo_ia || '';\n  abordagem_sugerida = result.abordagem_sugerida || '';\n} catch (e) {\n  // mantém strings vazias se a IA falhar ou responder fora do formato esperado\n}\n\nconst { openai_request_body, ...rest } = original;\n\nreturn [{\n  json: {\n    ...rest,\n    resumo_ia,\n    abordagem_sugerida\n  }\n}];"
+      },
+      "id": "f1a2b3c4-0001-4000-8000-000000000005",
+      "name": "Parse Resposta IA",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2080, 832]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1Qhoi8hoJHXWTEBgHrulFQz2-CocUhbUNBRrWHJgH2A8",
+          "mode": "list",
+          "cachedResultName": "CadastroLeads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Qhoi8hoJHXWTEBgHrulFQz2-CocUhbUNBRrWHJgH2A8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Qhoi8hoJHXWTEBgHrulFQz2-CocUhbUNBRrWHJgH2A8/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "nome",
+              "displayName": "nome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "empresa",
+              "displayName": "empresa",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "cnpj",
+              "displayName": "cnpj",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "telefone_lead",
+              "displayName": "telefone_lead",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "razao_social",
+              "displayName": "razao_social",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "cnae_decricao",
+              "displayName": "cnae_decricao",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "porte",
+              "displayName": "porte",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "situacao_cadastral",
+              "displayName": "situacao_cadastral",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "capital_social",
+              "displayName": "capital_social",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ticket_medio_mensal",
+              "displayName": "ticket_medio_mensal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tier",
+              "displayName": "tier",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fonte_enriquecedora",
+              "displayName": "fonte_enriquecedora",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "resumo_ia",
+              "displayName": "resumo_ia",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "abordagem_sugerida",
+              "displayName": "abordagem_sugerida",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "a4c81664-1170-4d45-9639-12dfca909b0f",
+      "name": "Salvar Lead na Planilha",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [2292, 832],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "mw0T5OyoQJ8tCkDM",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "c2",
+              "leftValue": "={{ $json.tier }}",
+              "rightValue": "quente",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "7d590772-2d55-41bc-bddf-9239d2270c2c",
+      "name": "IF Tier = Quente",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2484, 832]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = items[0].json;\nconst resumo = `ð¥ LEAD QUENTE â responder o quanto antes!\\n\\nNome: ${item.nome}\\nEmpresa: ${item.razao_social || item.empresa}\\nCNPJ: ${item.cnpj}\\nSegmento (CNAE): ${item.cnae_descricao}\\nSituaÃ§Ã£o cadastral: ${item.situacao_cadastral}\\nTicket mÃ©dio informado: R$ ${item.ticket_medio_mensal}/mÃªs\\nContato: ${item.email} | ${item.telefone_lead}\\nFonte do enriquecimento: ${item.fonte_enriquecimento}`;\n\nreturn [{ json: { ...item, resumo } }];"
+      },
+      "id": "73ea37d9-9deb-4f36-9a82-693ef448baa6",
+      "name": "Montar Resumo (Quente)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2692, 688]
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "alphadata",
+        "remoteJid": "={{ $json.telefone_sdr }}",
+        "messageText": "={{ $json.resumo }}",
+        "options_message": {}
+      },
+      "id": "a541361a-9d2b-4bf4-bba6-c73411a2bb79",
+      "name": "Enviar Resumo SDR (Quente)",
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [2884, 688],
+      "credentials": {
+        "evolutionApi": {
+          "id": "NeFsswRoUSbf7J8H",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'ok', tier: 'quente' } }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://kristhianno.github.io"
+              }
+            ]
+          }
+        }
+      },
+      "id": "4f290fa5-f334-4136-8ec0-c04d041a128c",
+      "name": "Respond - Quente",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [3284, 640]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "c3",
+              "leftValue": "={{ $json.tier }}",
+              "rightValue": "atencao",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "007b1628-cfc8-43ff-935c-922503409a53",
+      "name": "IF Tier = AtenÃ§Ã£o",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2692, 928]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = items[0].json;\nconst resumo = `ð¡ Lead em atenÃ§Ã£o â vale acompanhar.\\n\\nNome: ${item.nome}\\nEmpresa: ${item.razao_social || item.empresa}\\nCNPJ: ${item.cnpj}\\nSegmento (CNAE): ${item.cnae_descricao}\\nSituaÃ§Ã£o cadastral: ${item.situacao_cadastral}\\nTicket mÃ©dio informado: R$ ${item.ticket_medio_mensal}/mÃªs\\nContato: ${item.email} | ${item.telefone_lead}\\nFonte do enriquecimento: ${item.fonte_enriquecimento}`;\n\nreturn [{ json: { ...item, resumo } }];"
+      },
+      "id": "2e8e09ba-395e-4e31-8039-81d9c1d98283",
+      "name": "Montar Resumo (AtenÃ§Ã£o)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2900, 1024]
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "alphadata",
+        "remoteJid": "={{ $json.telefone_sdr }}",
+        "messageText": "={{ $json.resumo }}",
+        "options_message": {}
+      },
+      "id": "602ad8f4-44ba-4d5f-b4c0-26d7111e5d30",
+      "name": "Enviar Resumo SDR (AtenÃ§Ã£o)",
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [3108, 1008],
+      "credentials": {
+        "evolutionApi": {
+          "id": "NeFsswRoUSbf7J8H",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'ok', tier: 'atencao' } }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://kristhianno.github.io"
+              }
+            ]
+          }
+        }
+      },
+      "id": "02ad75dd-026c-46d9-8312-4b3f0bb18f1a",
+      "name": "Respond - AtenÃ§Ã£o",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [3300, 1008]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'ok', tier: 'desqualificado' } }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://kristhianno.github.io"
+              }
+            ]
+          }
+        }
+      },
+      "id": "e008a6de-e626-478b-8859-c75f7ac8fd93",
+      "name": "Respond - Desqualificado",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2868, 1280]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.hubapi.com/crm/v3/objects/contacts/batch/upsert",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ inputs: [ { idProperty: 'email', id: $json.email, properties: { email: $json.email, firstname: $json.nome, phone: $json.telefone_lead, company: $json.razao_social || $json.empresa, cnpj: $json.cnpj, ticket_medio_mensal: String($json.ticket_medio_mensal || ''), lead_tier: $json.tier, resumo_ia: $json.resumo_ia || '' } } ] }) }}",
+        "options": {}
+      },
+      "id": "f1a2b3c4-0001-4000-8000-000000000006",
+      "name": "HubSpot - Upsert Contato",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2900, 860],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "path": "leads-kanban",
+        "responseMode": "responseNode",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://kristhianno.github.io"
+              }
+            ]
+          }
+        }
+      },
+      "id": "12a50e14-0092-44b9-8686-7193c3b4367e",
+      "name": "Webhook - Listar Leads",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [384, 1376],
+      "webhookId": "b7860feb-42ae-4c5d-b51a-c85ad520240e"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1Qhoi8hoJHXWTEBgHrulFQz2-CocUhbUNBRrWHJgH2A8",
+          "mode": "list",
+          "cachedResultName": "CadastroLeads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Qhoi8hoJHXWTEBgHrulFQz2-CocUhbUNBRrWHJgH2A8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Qhoi8hoJHXWTEBgHrulFQz2-CocUhbUNBRrWHJgH2A8/edit#gid=0"
+        },
+        "options": {}
+      },
+      "id": "55eb17f8-289e-40ec-9ceb-4b0537e7cb25",
+      "name": "Buscar Todos Leads",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [592, 1376],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "mw0T5OyoQJ8tCkDM",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const leads = items.map(i => i.json);\nreturn [{ json: { leads } }];"
+      },
+      "id": "0a88b394-8e30-4140-b360-16684ea2b291",
+      "name": "Agrupar Leads em Array",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [784, 1376]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://kristhianno.github.io"
+              }
+            ]
+          }
+        }
+      },
+      "id": "28c5e6cf-41c6-4b36-a573-2a252eec697a",
+      "name": "Respond - Lista Leads",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [992, 1376]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook - FormulÃ¡rio Site": {
+      "main": [
+        [
+          { "node": "IF - Segurança", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "IF - Segurança": {
+      "main": [
+        [
+          { "node": "Normalizar Payload", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Respond - Bloqueado", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Normalizar Payload": {
+      "main": [
+        [
+          { "node": "Enriquecer BrasilAPI", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Enriquecer BrasilAPI": {
+      "main": [
+        [
+          { "node": "IF BrasilAPI OK", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "IF BrasilAPI OK": {
+      "main": [
+        [
+          { "node": "Formatar Dados BrasilAPI", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Enriquecer OpenCNPJ", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Enriquecer OpenCNPJ": {
+      "main": [
+        [
+          { "node": "Formatar Dados OpenCNPJ", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Formatar Dados BrasilAPI": {
+      "main": [
+        [
+          { "node": "Calcular ClassificaÃ§Ã£o", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Formatar Dados OpenCNPJ": {
+      "main": [
+        [
+          { "node": "Calcular ClassificaÃ§Ã£o", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Calcular ClassificaÃ§Ã£o": {
+      "main": [
+        [
+          { "node": "Montar Prompt IA", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Montar Prompt IA": {
+      "main": [
+        [
+          { "node": "OpenAI - Qualificação", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "OpenAI - Qualificação": {
+      "main": [
+        [
+          { "node": "Parse Resposta IA", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Parse Resposta IA": {
+      "main": [
+        [
+          { "node": "Salvar Lead na Planilha", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Salvar Lead na Planilha": {
+      "main": [
+        [
+          { "node": "IF Tier = Quente", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "IF Tier = Quente": {
+      "main": [
+        [
+          { "node": "Montar Resumo (Quente)", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "IF Tier = AtenÃ§Ã£o", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Montar Resumo (Quente)": {
+      "main": [
+        [
+          { "node": "Enviar Resumo SDR (Quente)", "type": "main", "index": 0 },
+          { "node": "HubSpot - Upsert Contato", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Enviar Resumo SDR (Quente)": {
+      "main": [
+        [
+          { "node": "Respond - Quente", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "IF Tier = AtenÃ§Ã£o": {
+      "main": [
+        [
+          { "node": "Montar Resumo (AtenÃ§Ã£o)", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Respond - Desqualificado", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Montar Resumo (AtenÃ§Ã£o)": {
+      "main": [
+        [
+          { "node": "Enviar Resumo SDR (AtenÃ§Ã£o)", "type": "main", "index": 0 },
+          { "node": "HubSpot - Upsert Contato", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Enviar Resumo SDR (AtenÃ§Ã£o)": {
+      "main": [
+        [
+          { "node": "Respond - AtenÃ§Ã£o", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Webhook - Listar Leads": {
+      "main": [
+        [
+          { "node": "Buscar Todos Leads", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Buscar Todos Leads": {
+      "main": [
+        [
+          { "node": "Agrupar Leads em Array", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Agrupar Leads em Array": {
+      "main": [
+        [
+          { "node": "Respond - Lista Leads", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "7e685022-6f80-42f6-9ed6-c8109e227673",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "01e2099a5855a94c56f7681aa111ae19bddd022b67076c84ae60a0da5c24bd63"
+  },
+  "id": "6261w2UtAVr3Ad0y",
+  "tags": []
+}
