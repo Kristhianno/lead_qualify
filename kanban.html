@@ -371,10 +371,8 @@
 </div>
 
 <script>
-  // TODO: substituir pela URL de PRODUÇÃO do webhook GET do n8n (path /webhook/leads-kanban).
-  // Atenção: a URL abaixo é a Test URL do n8n (/webhook-test/...) — só funciona enquanto
-  // o workflow estiver em modo de escuta de teste ("Listen for test event") no editor do n8n.
-  const LEADS_API_URL = "https://automacoes-n8n.m5jmff.easypanel.host/webhook-test/leads-kanban";
+  // URL de produção do webhook GET do n8n (path /webhook/leads-kanban).
+  const LEADS_API_URL = "https://automacoes-n8n.m5jmff.easypanel.host/webhook/leads-kanban";
 
   const board = document.getElementById('board');
   const loadingState = document.getElementById('loadingState');
