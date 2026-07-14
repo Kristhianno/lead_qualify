@@ -26,7 +26,7 @@
         }
       },
       "id": "9554848e-cc81-4392-bdb6-25892c864715",
-      "name": "Webhook - FormulÃ¡rio Site",
+      "name": "Webhook - Formulário Site",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [384, 832],
@@ -227,7 +227,7 @@
         "jsCode": "const item = items[0].json;\nconst ticket = Number(item.ticket_medio_mensal) || 0;\n\nlet tier = 'desqualificado';\nif (ticket > 10000) tier = 'quente';\nelse if (ticket >= 5000) tier = 'atencao';\n\nreturn [{\n  json: {\n    ...item,\n    tier,\n    timestamp: new Date().toISOString()\n  }\n}];"
       },
       "id": "9f0aab5e-fc14-4f91-b3e2-fc8b02ea6910",
-      "name": "Calcular ClassificaÃ§Ã£o",
+      "name": "Calcular Classificação",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [1584, 832]
@@ -495,7 +495,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const item = items[0].json;\nconst resumo = `ð¥ LEAD QUENTE â responder o quanto antes!\\n\\nNome: ${item.nome}\\nEmpresa: ${item.razao_social || item.empresa}\\nCNPJ: ${item.cnpj}\\nSegmento (CNAE): ${item.cnae_descricao}\\nSituaÃ§Ã£o cadastral: ${item.situacao_cadastral}\\nTicket mÃ©dio informado: R$ ${item.ticket_medio_mensal}/mÃªs\\nContato: ${item.email} | ${item.telefone_lead}\\nFonte do enriquecimento: ${item.fonte_enriquecimento}`;\n\nreturn [{ json: { ...item, resumo } }];"
+        "jsCode": "const item = items[0].json;\nconst resumo = `🔥 LEAD QUENTE — responder o quanto antes!\\n\\nNome: ${item.nome}\\nEmpresa: ${item.razao_social || item.empresa}\\nCNPJ: ${item.cnpj}\\nSegmento (CNAE): ${item.cnae_descricao}\\nSituação cadastral: ${item.situacao_cadastral}\\nTicket médio informado: R$ ${item.ticket_medio_mensal}/mês\\nContato: ${item.email} | ${item.telefone_lead}\\nFonte do enriquecimento: ${item.fonte_enriquecimento}`;\n\nreturn [{ json: { ...item, resumo } }];"
       },
       "id": "73ea37d9-9deb-4f36-9a82-693ef448baa6",
       "name": "Montar Resumo (Quente)",
@@ -569,17 +569,17 @@
         "options": {}
       },
       "id": "007b1628-cfc8-43ff-935c-922503409a53",
-      "name": "IF Tier = AtenÃ§Ã£o",
+      "name": "IF Tier = Atenção",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [2692, 928]
     },
     {
       "parameters": {
-        "jsCode": "const item = items[0].json;\nconst resumo = `ð¡ Lead em atenÃ§Ã£o â vale acompanhar.\\n\\nNome: ${item.nome}\\nEmpresa: ${item.razao_social || item.empresa}\\nCNPJ: ${item.cnpj}\\nSegmento (CNAE): ${item.cnae_descricao}\\nSituaÃ§Ã£o cadastral: ${item.situacao_cadastral}\\nTicket mÃ©dio informado: R$ ${item.ticket_medio_mensal}/mÃªs\\nContato: ${item.email} | ${item.telefone_lead}\\nFonte do enriquecimento: ${item.fonte_enriquecimento}`;\n\nreturn [{ json: { ...item, resumo } }];"
+        "jsCode": "const item = items[0].json;\nconst resumo = `🟡 Lead em atenção — vale acompanhar.\\n\\nNome: ${item.nome}\\nEmpresa: ${item.razao_social || item.empresa}\\nCNPJ: ${item.cnpj}\\nSegmento (CNAE): ${item.cnae_descricao}\\nSituação cadastral: ${item.situacao_cadastral}\\nTicket médio informado: R$ ${item.ticket_medio_mensal}/mês\\nContato: ${item.email} | ${item.telefone_lead}\\nFonte do enriquecimento: ${item.fonte_enriquecimento}`;\n\nreturn [{ json: { ...item, resumo } }];"
       },
       "id": "2e8e09ba-395e-4e31-8039-81d9c1d98283",
-      "name": "Montar Resumo (AtenÃ§Ã£o)",
+      "name": "Montar Resumo (Atenção)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [2900, 1024]
@@ -593,7 +593,7 @@
         "options_message": {}
       },
       "id": "602ad8f4-44ba-4d5f-b4c0-26d7111e5d30",
-      "name": "Enviar Resumo SDR (AtenÃ§Ã£o)",
+      "name": "Enviar Resumo SDR (Atenção)",
       "type": "n8n-nodes-evolution-api.evolutionApi",
       "typeVersion": 1,
       "position": [3108, 1008],
@@ -620,7 +620,7 @@
         }
       },
       "id": "02ad75dd-026c-46d9-8312-4b3f0bb18f1a",
-      "name": "Respond - AtenÃ§Ã£o",
+      "name": "Respond - Atenção",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [3300, 1008]
@@ -759,7 +759,7 @@
   ],
   "pinData": {},
   "connections": {
-    "Webhook - FormulÃ¡rio Site": {
+    "Webhook - Formulário Site": {
       "main": [
         [
           { "node": "IF - Segurança", "type": "main", "index": 0 }
@@ -810,18 +810,18 @@
     "Formatar Dados BrasilAPI": {
       "main": [
         [
-          { "node": "Calcular ClassificaÃ§Ã£o", "type": "main", "index": 0 }
+          { "node": "Calcular Classificação", "type": "main", "index": 0 }
         ]
       ]
     },
     "Formatar Dados OpenCNPJ": {
       "main": [
         [
-          { "node": "Calcular ClassificaÃ§Ã£o", "type": "main", "index": 0 }
+          { "node": "Calcular Classificação", "type": "main", "index": 0 }
         ]
       ]
     },
-    "Calcular ClassificaÃ§Ã£o": {
+    "Calcular Classificação": {
       "main": [
         [
           { "node": "Montar Prompt IA", "type": "main", "index": 0 }
@@ -862,7 +862,7 @@
           { "node": "Montar Resumo (Quente)", "type": "main", "index": 0 }
         ],
         [
-          { "node": "IF Tier = AtenÃ§Ã£o", "type": "main", "index": 0 }
+          { "node": "IF Tier = Atenção", "type": "main", "index": 0 }
         ]
       ]
     },
@@ -881,28 +881,28 @@
         ]
       ]
     },
-    "IF Tier = AtenÃ§Ã£o": {
+    "IF Tier = Atenção": {
       "main": [
         [
-          { "node": "Montar Resumo (AtenÃ§Ã£o)", "type": "main", "index": 0 }
+          { "node": "Montar Resumo (Atenção)", "type": "main", "index": 0 }
         ],
         [
           { "node": "Respond - Desqualificado", "type": "main", "index": 0 }
         ]
       ]
     },
-    "Montar Resumo (AtenÃ§Ã£o)": {
+    "Montar Resumo (Atenção)": {
       "main": [
         [
-          { "node": "Enviar Resumo SDR (AtenÃ§Ã£o)", "type": "main", "index": 0 },
+          { "node": "Enviar Resumo SDR (Atenção)", "type": "main", "index": 0 },
           { "node": "HubSpot - Upsert Contato", "type": "main", "index": 0 }
         ]
       ]
     },
-    "Enviar Resumo SDR (AtenÃ§Ã£o)": {
+    "Enviar Resumo SDR (Atenção)": {
       "main": [
         [
-          { "node": "Respond - AtenÃ§Ã£o", "type": "main", "index": 0 }
+          { "node": "Respond - Atenção", "type": "main", "index": 0 }
         ]
       ]
     },
