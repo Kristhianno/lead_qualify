@@ -495,7 +495,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const item = items[0].json;\nconst resumo = `🔥 LEAD QUENTE — responder o quanto antes!\\n\\nNome: ${item.nome}\\nEmpresa: ${item.razao_social || item.empresa}\\nCNPJ: ${item.cnpj}\\nSegmento (CNAE): ${item.cnae_descricao}\\nSituação cadastral: ${item.situacao_cadastral}\\nTicket médio informado: R$ ${item.ticket_medio_mensal}/mês\\nContato: ${item.email} | ${item.telefone_lead}\\nFonte do enriquecimento: ${item.fonte_enriquecimento}`;\n\nreturn [{ json: { ...item, resumo } }];"
+        "jsCode": "const item = items[0].json;\nconst resumo = `🔥 LEAD QUENTE — responder o quanto antes!\\n\\nNome: ${item.nome}\\nEmpresa: ${item.razao_social || item.empresa}\\nCNPJ: ${item.cnpj}\\nSegmento (CNAE): ${item.cnae_descricao}\\nSituação cadastral: ${item.situacao_cadastral}\\n\\n📊 Análise da IA: ${item.resumo_ia || 'não disponível'}\\n💡 Abordagem sugerida: ${item.abordagem_sugerida || 'não disponível'}\\n\\nTicket médio informado: R$ ${item.ticket_medio_mensal}/mês\\nContato: ${item.email} | ${item.telefone_lead}\\nFonte do enriquecimento: ${item.fonte_enriquecimento}`;\n\nreturn [{ json: { ...item, resumo } }];"
       },
       "id": "73ea37d9-9deb-4f36-9a82-693ef448baa6",
       "name": "Montar Resumo (Quente)",
@@ -576,7 +576,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const item = items[0].json;\nconst resumo = `🟡 Lead em atenção — vale acompanhar.\\n\\nNome: ${item.nome}\\nEmpresa: ${item.razao_social || item.empresa}\\nCNPJ: ${item.cnpj}\\nSegmento (CNAE): ${item.cnae_descricao}\\nSituação cadastral: ${item.situacao_cadastral}\\nTicket médio informado: R$ ${item.ticket_medio_mensal}/mês\\nContato: ${item.email} | ${item.telefone_lead}\\nFonte do enriquecimento: ${item.fonte_enriquecimento}`;\n\nreturn [{ json: { ...item, resumo } }];"
+        "jsCode": "const item = items[0].json;\nconst resumo = `🟡 Lead em atenção — vale acompanhar.\\n\\nNome: ${item.nome}\\nEmpresa: ${item.razao_social || item.empresa}\\nCNPJ: ${item.cnpj}\\nSegmento (CNAE): ${item.cnae_descricao}\\nSituação cadastral: ${item.situacao_cadastral}\\n\\n📊 Análise da IA: ${item.resumo_ia || 'não disponível'}\\n💡 Abordagem sugerida: ${item.abordagem_sugerida || 'não disponível'}\\n\\nTicket médio informado: R$ ${item.ticket_medio_mensal}/mês\\nContato: ${item.email} | ${item.telefone_lead}\\nFonte do enriquecimento: ${item.fonte_enriquecimento}`;\n\nreturn [{ json: { ...item, resumo } }];"
       },
       "id": "2e8e09ba-395e-4e31-8039-81d9c1d98283",
       "name": "Montar Resumo (Atenção)",
