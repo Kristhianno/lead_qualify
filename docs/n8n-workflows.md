@@ -24,18 +24,50 @@ Webhook - Formulário Site
        false -> [NOVO] Respond - Bloqueado (200 vazio)
        true  -> Normalizar Payload (como antes)
   -> Enriquecer BrasilAPI / OpenCNPJ (sem mudança)
-  -> Calcular Classificação (sem mudança)
+  -> Calcular Classificação (sem mudança na lógica de tier)
   -> [NOVO] Montar Prompt IA (monta o prompt da OpenAI)
   -> [NOVO] OpenAI - Qualificação (chamada HTTP para a API da OpenAI)
   -> [NOVO] Parse Resposta IA (extrai resumo_ia / abordagem_sugerida)
   -> Salvar Lead na Planilha (2 colunas novas: resumo_ia, abordagem_sugerida)
-  -> IF Tier = Quente / Atenção (sem mudança)
-       -> Montar Resumo (Quente/Atenção) -> Enviar Resumo SDR (sem mudança)
-                                          -> [NOVO] HubSpot - Upsert Contato
+  -> IF Tier = Quente
+       true  -> Montar Resumo (Quente) -> Enviar Resumo SDR (Quente)
+                                        -> [NOVO] HubSpot - Upsert Contato
+       false -> IF Tier = Atenção
+                  true  -> Montar Resumo (Atenção) -> Enviar Resumo SDR (Atenção)
+                                                     -> [NOVO] HubSpot - Upsert Contato
+                  false -> Respond - Desqualificado
+                        -> [NOVO] HubSpot - Upsert Contato
 ```
 
 O alerta de WhatsApp via Evolution API (`Enviar Resumo SDR`) não mudou —
-já funcionava e continua funcionando exatamente como antes.
+já funcionava e continua funcionando exatamente como antes, e só dispara
+para os tiers `quente`/`atencao` (leads `desqualificado` não geram alerta,
+só sincronizam com o HubSpot).
+
+### Status do lead no board do HubSpot
+
+Desde a última mudança, `Calcular Classificação` também calcula
+`hs_lead_status` (propriedade nativa do HubSpot, a mesma que controla as
+colunas do board de Contatos) a partir do tier:
+
+| Tier | Coluna no HubSpot |
+|---|---|
+| `quente` | Oportunidade |
+| `atencao` | Oportunidade |
+| `desqualificado` | Nutrir |
+
+Esse mapeamento está hardcoded no node `Calcular Classificação`
+(constante `HUBSPOT_LEAD_STATUS`) usando os **rótulos** das opções como
+valor. Isso só funciona de verdade se o valor interno de cada opção no
+HubSpot for exatamente esse texto — **confirme antes de ativar** (ver
+checklist item 5 abaixo). Se os valores internos forem diferentes (ex.
+gerados automaticamente pelo HubSpot como `Oportunidade_2` ou algo em
+inglês), ajuste a constante no código do node.
+
+Antes desta mudança, leads `desqualificado` nunca chegavam ao HubSpot —
+só ficavam na planilha. Agora todo lead que passa pelo formulário gera ou
+atualiza um contato no HubSpot, cada um caindo na coluna correspondente
+ao seu tier.
 
 Optei por implementar a chamada da OpenAI e do HubSpot com o nó genérico
 **HTTP Request** (o mesmo padrão já usado para BrasilAPI/OpenCNPJ), em vez
@@ -77,6 +109,16 @@ depender de versões específicas desses nodes na sua instância.
 4. n8n → **Credentials → New → Header Auth** → Name: `Authorization`,
    Value: `Bearer <token do passo 2>`. Salve como `HubSpot Header Auth`.
 5. Abra o nó **`HubSpot - Upsert Contato`** e selecione essa credencial.
+6. **Confirme o valor interno das opções de `hs_lead_status`** antes de
+   ativar: **Configurações → Propriedades → Propriedades de contato →
+   Status do lead**. Cada opção do dropdown (Lead, Oportunidade, Nutrir,
+   etc.) tem um rótulo (o que aparece na tela) e um valor interno (o que
+   a API espera). O node `Calcular Classificação` está enviando
+   `Oportunidade` e `Nutrir` como se fossem os valores internos — se o
+   HubSpot gerou valores internos diferentes para essas opções, edite a
+   constante `HUBSPOT_LEAD_STATUS` nesse node para usar os valores
+   corretos. Envie um lead de teste de cada tier e confirme no board que
+   ele caiu na coluna certa.
 
 ### 3. Colunas novas na planilha do Google Sheets
 
