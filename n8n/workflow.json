@@ -224,7 +224,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const item = items[0].json;\nconst ticket = Number(item.ticket_medio_mensal) || 0;\n\nlet tier = 'desqualificado';\nif (ticket > 10000) tier = 'quente';\nelse if (ticket >= 5000) tier = 'atencao';\n\n// Valores INTERNOS (não os rótulos) das opções da propriedade nativa\n// hs_lead_status no HubSpot. Confira em Configurações > Propriedades >\n// Propriedades de contato > Status do lead antes de ativar.\nconst HUBSPOT_LEAD_STATUS = {\n  quente: 'Oportunidade',\n  atencao: 'Oportunidade',\n  desqualificado: 'Nutrir'\n};\n\nreturn [{\n  json: {\n    ...item,\n    tier,\n    hs_lead_status: HUBSPOT_LEAD_STATUS[tier],\n    timestamp: new Date().toISOString()\n  }\n}];"
+        "jsCode": "const item = items[0].json;\nconst ticket = Number(item.ticket_medio_mensal) || 0;\n\nlet tier = 'desqualificado';\nif (ticket > 10000) tier = 'quente';\nelse if (ticket >= 5000) tier = 'atencao';\n\n// Valores INTERNOS (não os rótulos) das opções da propriedade nativa\n// hs_lead_status no HubSpot. Confira em Configurações > Propriedades >\n// Propriedades de contato > Status do lead antes de ativar.\nconst HUBSPOT_LEAD_STATUS = {\n  quente: 'OPEN_DEAL',\n  atencao: 'IN_PROGRESS',\n  desqualificado: 'UNQUALIFIED'\n};\n\nreturn [{\n  json: {\n    ...item,\n    tier,\n    hs_lead_status: HUBSPOT_LEAD_STATUS[tier],\n    timestamp: new Date().toISOString()\n  }\n}];"
       },
       "id": "9f0aab5e-fc14-4f91-b3e2-fc8b02ea6910",
       "name": "Calcular Classificação",
