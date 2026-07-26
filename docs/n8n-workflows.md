@@ -46,28 +46,59 @@ só sincronizam com o HubSpot).
 
 ### Status do lead no board do HubSpot
 
-Desde a última mudança, `Calcular Classificação` também calcula
-`hs_lead_status` (propriedade nativa do HubSpot, a mesma que controla as
-colunas do board de Contatos) a partir do tier:
+`Calcular Classificação` calcula um valor de propriedade do HubSpot a
+partir do tier, para o contato cair na coluna certa do **board de
+Contatos**:
 
-| Tier | Coluna no HubSpot |
+| Tier | Coluna no board |
 |---|---|
 | `quente` | Oportunidade |
 | `atencao` | Oportunidade |
 | `desqualificado` | Nutrir |
 
-Esse mapeamento está hardcoded no node `Calcular Classificação`
-(constante `HUBSPOT_LEAD_STATUS`) usando os **rótulos** das opções como
-valor. Isso só funciona de verdade se o valor interno de cada opção no
-HubSpot for exatamente esse texto — **confirme antes de ativar** (ver
-checklist item 5 abaixo). Se os valores internos forem diferentes (ex.
-gerados automaticamente pelo HubSpot como `Oportunidade_2` ou algo em
-inglês), ajuste a constante no código do node.
+**Atenção — pegadinha já vivida neste projeto:** o board de Contatos
+desta conta é agrupado pela propriedade **`lifecyclestage`** (Lifecycle
+Stage), **não** por `hs_lead_status`. As duas são propriedades nativas
+do HubSpot que existem em qualquer conta, então é fácil confundir uma
+com a outra — o node já chegou a gravar em `hs_lead_status` (que
+realmente existe e aceita valores, só que não é a propriedade que esse
+board usa), e o sintoma foi contatos sendo criados normalmente mas
+sumindo do board (contagem 0 em todas as colunas). Confirmado via
+`GET https://api.hubapi.com/crm/v3/properties/contacts/lifecyclestage`
+com o token do Private App — **se o board não bater com os valores
+abaixo, rode esse GET de novo antes de mexer em qualquer coisa**, pois
+os valores internos das opções são específicos desta conta.
 
-Antes desta mudança, leads `desqualificado` nunca chegavam ao HubSpot —
-só ficavam na planilha. Agora todo lead que passa pelo formulário gera ou
-atualiza um contato no HubSpot, cada um caindo na coluna correspondente
-ao seu tier.
+Os valores internos confirmados nesta conta (constante
+`HUBSPOT_LIFECYCLE_STAGE` no node `Calcular Classificação`):
+
+| Opção (rótulo) | Valor interno |
+|---|---|
+| Lead | `lead` |
+| Opportunity (exibido como "Oportunidade") | `opportunity` |
+| Nutrir (opção customizada) | `1398914058` |
+
+`lead`/`opportunity` são os valores padrão do HubSpot (não mudam entre
+contas). `1398914058` é um id numérico **auto-gerado** no momento em que
+a opção customizada "Nutrir" foi criada nesta conta — não é a string
+`"nutrir"` nem nada previsível, e não vai se repetir se essa opção for
+recriada em outra conta/instância. Se algum dia o board parar de bater
+de novo, o primeiro suspeito é essa constante ter ficado desatualizada
+em relação ao valor real da opção.
+
+Antes da correção, leads `desqualificado` nunca chegavam ao HubSpot — só
+ficavam na planilha. Depois, todo lead que passa pelo formulário gera ou
+atualiza um contato no HubSpot, mas o campo gravado ainda era
+`hs_lead_status`. A correção trocou o campo para `lifecyclestage`, o que
+foi validado criando manualmente um contato de teste
+(`lead.teste.automatiza@example.com`, tier `quente`,
+`lifecyclestage: opportunity`) direto via API e confirmando que ele
+aparece na coluna "Oportunidade" do board.
+
+Optei por implementar a chamada da OpenAI e do HubSpot com o nó genérico
+**HTTP Request** (o mesmo padrão já usado para BrasilAPI/OpenCNPJ), em vez
+dos nodes nativos OpenAI/HubSpot do n8n — assim o JSON importa sem
+depender de versões específicas desses nodes na sua instância.
 
 ## Novo fluxo independente: Relatório diário de leads por e-mail
 
@@ -92,18 +123,13 @@ planilha até o momento da execução), não "leads desde o último
 relatório" — não há filtro de janela de tempo.
 
 O tier `desqualificado` corresponde à coluna "Nutrir" do board do HubSpot
-(ver tabela de `hs_lead_status` acima) — por isso aparece como 🌱 Nutrir
+(ver tabela de `lifecyclestage` acima) — por isso aparece como 🌱 Nutrir
 no e-mail, embora internamente o campo continue se chamando
 `desqualificado` na planilha/código.
 
 Se a planilha estiver vazia, o node de leitura tem `alwaysOutputData`
 ativado para garantir que o fluxo não pare em silêncio — o e-mail ainda
 sai, com o texto "Nenhum lead cadastrado na planilha ainda."
-
-Optei por implementar a chamada da OpenAI e do HubSpot com o nó genérico
-**HTTP Request** (o mesmo padrão já usado para BrasilAPI/OpenCNPJ), em vez
-dos nodes nativos OpenAI/HubSpot do n8n — assim o JSON importa sem
-depender de versões específicas desses nodes na sua instância.
 
 ---
 
@@ -140,16 +166,22 @@ depender de versões específicas desses nodes na sua instância.
 4. n8n → **Credentials → New → Header Auth** → Name: `Authorization`,
    Value: `Bearer <token do passo 2>`. Salve como `HubSpot Header Auth`.
 5. Abra o nó **`HubSpot - Upsert Contato`** e selecione essa credencial.
-6. **Confirme o valor interno das opções de `hs_lead_status`** antes de
-   ativar: **Configurações → Propriedades → Propriedades de contato →
-   Status do lead**. Cada opção do dropdown (Lead, Oportunidade, Nutrir,
-   etc.) tem um rótulo (o que aparece na tela) e um valor interno (o que
-   a API espera). O node `Calcular Classificação` está enviando
-   `Oportunidade` e `Nutrir` como se fossem os valores internos — se o
-   HubSpot gerou valores internos diferentes para essas opções, edite a
-   constante `HUBSPOT_LEAD_STATUS` nesse node para usar os valores
-   corretos. Envie um lead de teste de cada tier e confirme no board que
-   ele caiu na coluna certa.
+6. **Confirme o valor interno das opções de `lifecyclestage`** antes de
+   ativar — é a propriedade que controla o board de Contatos, não
+   `hs_lead_status` (as duas existem em qualquer conta HubSpot, mas só
+   uma controla esse board; ver "Status do lead no board do HubSpot"
+   acima para o histórico de como isso já causou contatos sumindo do
+   board). O jeito mais confiável de confirmar não é pela UI, é via API:
+   ```
+   GET https://api.hubapi.com/crm/v3/properties/contacts/lifecyclestage
+   Authorization: Bearer <token do Private App>
+   ```
+   O array `options` da resposta traz `label` (o que aparece na tela) e
+   `value` (o que a API espera de verdade). Se os valores não baterem com
+   a tabela em "Status do lead no board do HubSpot", edite a constante
+   `HUBSPOT_LIFECYCLE_STAGE` no node `Calcular Classificação`. Envie um
+   lead de teste de cada tier e confirme no board que ele caiu na coluna
+   certa.
 
 ### 3. Colunas novas na planilha do Google Sheets
 
