@@ -52,7 +52,7 @@ Contatos**:
 
 | Tier | Coluna no board |
 |---|---|
-| `quente` | Oportunidade |
+| `quente` | Lead |
 | `atencao` | Oportunidade |
 | `desqualificado` | Nutrir |
 
@@ -72,11 +72,11 @@ os valores internos das opções são específicos desta conta.
 Os valores internos confirmados nesta conta (constante
 `HUBSPOT_LIFECYCLE_STAGE` no node `Calcular Classificação`):
 
-| Opção (rótulo) | Valor interno |
-|---|---|
-| Lead | `lead` |
-| Opportunity (exibido como "Oportunidade") | `opportunity` |
-| Nutrir (opção customizada) | `1398914058` |
+| Opção (rótulo) | Valor interno | Tier que grava aqui |
+|---|---|---|
+| Lead | `lead` | `quente` |
+| Opportunity (exibido como "Oportunidade") | `opportunity` | `atencao` |
+| Nutrir (opção customizada) | `1398914058` | `desqualificado` |
 
 `lead`/`opportunity` são os valores padrão do HubSpot (não mudam entre
 contas). `1398914058` é um id numérico **auto-gerado** no momento em que
@@ -92,8 +92,8 @@ atualiza um contato no HubSpot, mas o campo gravado ainda era
 `hs_lead_status`. A correção trocou o campo para `lifecyclestage`, o que
 foi validado criando manualmente um contato de teste
 (`lead.teste.automatiza@example.com`, tier `quente`,
-`lifecyclestage: opportunity`) direto via API e confirmando que ele
-aparece na coluna "Oportunidade" do board.
+`lifecyclestage: lead`) direto via API e confirmando que ele aparece na
+coluna "Lead" do board.
 
 Optei por implementar a chamada da OpenAI e do HubSpot com o nó genérico
 **HTTP Request** (o mesmo padrão já usado para BrasilAPI/OpenCNPJ), em vez
