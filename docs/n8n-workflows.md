@@ -69,6 +69,37 @@ só ficavam na planilha. Agora todo lead que passa pelo formulário gera ou
 atualiza um contato no HubSpot, cada um caindo na coluna correspondente
 ao seu tier.
 
+## Novo fluxo independente: Relatório diário de leads por e-mail
+
+```
+Schedule Trigger - Relatório Diário (todo dia às 08:00) ─┐
+Manual Trigger - Relatório Diário (sob demanda)          ─┴─> Buscar Todos Leads (Relatório)
+  -> Calcular Estatísticas do Relatório (conta por tier; acha maior/menor ticket_medio_mensal)
+  -> Montar Email Relatório (HTML) (monta assunto + corpo HTML)
+  -> Gmail - Enviar Relatório Diário (envia para ekriator@gmail.com)
+```
+
+Esse fluxo é totalmente independente dos outros dois (captura de lead e
+listagem do Kanban) — tem seus próprios gatilhos e sua própria leitura da
+planilha (`Buscar Todos Leads (Relatório)`), em vez de reaproveitar
+`Buscar Todos Leads`/`Agrupar Leads em Array` do fluxo do Kanban. Isso é
+proposital: se o relatório dependesse dos nodes do Kanban, toda visita ao
+board público (`kanban.html`) dispararia um e-mail de relatório como
+efeito colateral.
+
+O relatório é **cumulativo** (conta todas as linhas que já existem na
+planilha até o momento da execução), não "leads desde o último
+relatório" — não há filtro de janela de tempo.
+
+O tier `desqualificado` corresponde à coluna "Nutrir" do board do HubSpot
+(ver tabela de `hs_lead_status` acima) — por isso aparece como 🌱 Nutrir
+no e-mail, embora internamente o campo continue se chamando
+`desqualificado` na planilha/código.
+
+Se a planilha estiver vazia, o node de leitura tem `alwaysOutputData`
+ativado para garantir que o fluxo não pare em silêncio — o e-mail ainda
+sai, com o texto "Nenhum lead cadastrado na planilha ainda."
+
 Optei por implementar a chamada da OpenAI e do HubSpot com o nó genérico
 **HTTP Request** (o mesmo padrão já usado para BrasilAPI/OpenCNPJ), em vez
 dos nodes nativos OpenAI/HubSpot do n8n — assim o JSON importa sem
@@ -140,6 +171,44 @@ cabeçalho, com esses nomes exatos (sensível a maiúsculas/minúsculas):
      no HubSpot.
 4. Abra o Kanban (https://kristhianno.github.io/lead_qualify/kanban.html)
    e confirme que o card do lead mostra o bloco "Sugestão da IA".
+
+### 5. Credencial do Gmail (relatório diário)
+
+1. n8n → **Credentials → New → Gmail account** (OAuth2).
+2. Siga o fluxo OAuth do Google e autorize com a conta que deve aparecer
+   como remetente (pode ser a mesma conta dona do Google Sheets ou outra
+   conta Gmail, desde que tenha a Gmail API habilitada no Google Cloud
+   Console do projeto usado para o OAuth client).
+3. Salve a credencial com um nome tipo `Gmail account`.
+4. Abra o nó **`Gmail - Enviar Relatório Diário`** no workflow importado
+   e selecione essa credencial (assim como OpenAI/HubSpot, ela não vem
+   pré-selecionada porque credenciais não são portáveis entre instâncias
+   do n8n).
+5. Diferente de OpenAI/HubSpot (implementados com HTTP Request genérico
+   de propósito, para não depender de versão de node específica), este
+   nó usa o node nativo do Gmail. Se o n8n mostrar um aviso de versão do
+   node após colar o JSON, abra o nó e ajuste para a versão instalada na
+   sua instância.
+
+### 6. Teste do relatório diário
+
+1. No canvas, clique em **Execute workflow** a partir do node **`Manual
+   Trigger - Relatório Diário`** para rodar o fluxo sob demanda, sem
+   esperar até as 08:00.
+2. Confira na execução:
+   - `Buscar Todos Leads (Relatório)` leu todas as linhas da aba `Leads`.
+   - `Calcular Estatísticas do Relatório` bateu com os totais por tier
+     que aparecem no Kanban, e identificou corretamente o maior/menor
+     `ticket_medio_mensal`.
+   - O e-mail chegou em ekriator@gmail.com com o HTML formatado e os
+     blocos de maior/menor ticket preenchidos (nome, empresa, porte,
+     CNAE, resumo da IA).
+3. Se possível, teste também o caso de planilha vazia (ex. numa cópia de
+   teste sem linhas de dado) e confirme que o e-mail sai com o texto
+   "Nenhum lead cadastrado" em vez de travar a execução.
+4. Ative o workflow (`active: true`) para que o Schedule Trigger dispare
+   às 08:00 todo dia — lembre que isso ativa o workflow inteiro,
+   incluindo os outros dois fluxos já existentes.
 
 ---
 

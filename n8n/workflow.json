@@ -756,6 +756,92 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [992, 1376]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "days", "triggerAtHour": 8, "triggerAtMinute": 0 }
+          ]
+        }
+      },
+      "id": "f1a2b3c4-0001-4000-8000-000000000007",
+      "name": "Schedule Trigger - Relatório Diário",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [384, 1700]
+    },
+    {
+      "parameters": {},
+      "id": "f1a2b3c4-0001-4000-8000-000000000008",
+      "name": "Manual Trigger - Relatório Diário",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [384, 1860]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1Qhoi8hoJHXWTEBgHrulFQz2-CocUhbUNBRrWHJgH2A8",
+          "mode": "list",
+          "cachedResultName": "CadastroLeads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Qhoi8hoJHXWTEBgHrulFQz2-CocUhbUNBRrWHJgH2A8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Qhoi8hoJHXWTEBgHrulFQz2-CocUhbUNBRrWHJgH2A8/edit#gid=0"
+        },
+        "options": {}
+      },
+      "id": "f1a2b3c4-0001-4000-8000-000000000009",
+      "name": "Buscar Todos Leads (Relatório)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [608, 1780],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "mw0T5OyoQJ8tCkDM", "name": "Google Sheets account" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const leads = items.map(i => i.json).filter(l => l && Object.keys(l).length > 0);\n\nconst total = leads.length;\nconst countQuente = leads.filter(l => l.tier === 'quente').length;\nconst countAtencao = leads.filter(l => l.tier === 'atencao').length;\nconst countDesqualificado = leads.filter(l => l.tier === 'desqualificado').length;\n\nlet maiorTicket = null;\nlet menorTicket = null;\n\nfor (const lead of leads) {\n  const ticket = Number(lead.ticket_medio_mensal) || 0;\n  if (!maiorTicket || ticket > (Number(maiorTicket.ticket_medio_mensal) || 0)) {\n    maiorTicket = lead;\n  }\n  if (!menorTicket || ticket < (Number(menorTicket.ticket_medio_mensal) || 0)) {\n    menorTicket = lead;\n  }\n}\n\nreturn [{\n  json: { total, countQuente, countAtencao, countDesqualificado, maiorTicket, menorTicket }\n}];"
+      },
+      "id": "f1a2b3c4-0001-4000-8000-000000000010",
+      "name": "Calcular Estatísticas do Relatório",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [832, 1780]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = items[0].json;\nconst total = item.total;\nconst maiorTicket = item.maiorTicket;\nconst menorTicket = item.menorTicket;\n\nconst fmtMoeda = (v) => 'R$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });\n\nfunction blocoLead(lead, titulo) {\n  if (!lead) return `<p>${titulo}: nenhum lead disponível.</p>`;\n  const cnae = lead.cnae_descricao || lead.cnae_decricao || '-';\n  return `\n    <div style=\"border:1px solid #ddd;border-radius:8px;padding:12px;margin:8px 0;\">\n      <h3 style=\"margin:0 0 8px 0;\">${titulo}</h3>\n      <p><strong>Nome:</strong> ${lead.nome || '-'}</p>\n      <p><strong>Empresa:</strong> ${lead.razao_social || lead.empresa || '-'}</p>\n      <p><strong>Ticket médio mensal:</strong> ${fmtMoeda(lead.ticket_medio_mensal)}</p>\n      <p><strong>Porte:</strong> ${lead.porte || '-'}</p>\n      <p><strong>Segmento (CNAE):</strong> ${cnae}</p>\n      <p><strong>Resumo da IA:</strong> ${lead.resumo_ia || 'não disponível'}</p>\n    </div>`;\n}\n\nconst html = total === 0\n  ? `<h2>📊 Relatório diário de leads — CadastroLeads</h2><p>Nenhum lead cadastrado na planilha ainda.</p>`\n  : `\n    <h2>📊 Relatório diário de leads — CadastroLeads</h2>\n    <p>Total de leads cadastrados (acumulado, todas as linhas da planilha): <strong>${total}</strong></p>\n    <ul>\n      <li>🔥 Quente: <strong>${item.countQuente}</strong></li>\n      <li>🟡 Atenção: <strong>${item.countAtencao}</strong></li>\n      <li>🌱 Nutrir (desqualificado): <strong>${item.countDesqualificado}</strong></li>\n    </ul>\n    ${blocoLead(maiorTicket, '💰 Maior ticket médio mensal')}\n    ${blocoLead(menorTicket, '📉 Menor ticket médio mensal')}\n  `;\n\nconst subject = `Relatório diário de leads — ${total} leads (${new Date().toLocaleDateString('pt-BR')})`;\n\nreturn [{ json: { subject, htmlBody: html } }];"
+      },
+      "id": "f1a2b3c4-0001-4000-8000-000000000011",
+      "name": "Montar Email Relatório (HTML)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1056, 1780]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "ekriator@gmail.com",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "message": "={{ $json.htmlBody }}",
+        "options": {}
+      },
+      "id": "f1a2b3c4-0001-4000-8000-000000000012",
+      "name": "Gmail - Enviar Relatório Diário",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1280, 1780]
     }
   ],
   "pinData": {},
@@ -926,6 +1012,41 @@
       "main": [
         [
           { "node": "Respond - Lista Leads", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Schedule Trigger - Relatório Diário": {
+      "main": [
+        [
+          { "node": "Buscar Todos Leads (Relatório)", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Manual Trigger - Relatório Diário": {
+      "main": [
+        [
+          { "node": "Buscar Todos Leads (Relatório)", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Buscar Todos Leads (Relatório)": {
+      "main": [
+        [
+          { "node": "Calcular Estatísticas do Relatório", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Calcular Estatísticas do Relatório": {
+      "main": [
+        [
+          { "node": "Montar Email Relatório (HTML)", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Montar Email Relatório (HTML)": {
+      "main": [
+        [
+          { "node": "Gmail - Enviar Relatório Diário", "type": "main", "index": 0 }
         ]
       ]
     }
