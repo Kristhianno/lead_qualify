@@ -7,18 +7,20 @@
   <title>Qualifica Leads | ALPHADATA</title>
   <style>
     :root {
-      --accent: #003355;
-      --accent-light: #0d4d78;
-      --accent-soft: rgba(0, 51, 85, 0.06);
-      --gold: #b08d57;
-      --bg-top: #eef2f6;
-      --bg-bottom: #dde5ec;
-      --card-bg: #ffffff;
-      --text: #16232e;
-      --text-muted: #6b7686;
-      --border: #dfe4ea;
-      --error: #b3261e;
-      --success: #1f7a3d;
+      --accent: #2f6fd1;
+      --accent-light: #4f8fe3;
+      --accent-soft: rgba(47, 111, 209, 0.16);
+      --gold: #d4af73;
+      --bg-top: #0f1c2b;
+      --bg-bottom: #060d16;
+      --card-bg: #131f2e;
+      --input-bg: #0b1420;
+      --input-bg-focus: #16283b;
+      --text: #eef2f6;
+      --text-muted: #9aa8ba;
+      --border: #24374a;
+      --error: #ff7a7a;
+      --success: #4ade80;
     }
 
     * {
@@ -29,8 +31,8 @@
       margin: 0;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       background:
-        radial-gradient(1200px 600px at 15% -10%, rgba(0, 51, 85, 0.06), transparent 60%),
-        radial-gradient(900px 500px at 100% 110%, rgba(176, 141, 87, 0.08), transparent 60%),
+        radial-gradient(1200px 600px at 15% -10%, rgba(47, 111, 209, 0.14), transparent 60%),
+        radial-gradient(900px 500px at 100% 110%, rgba(212, 175, 115, 0.10), transparent 60%),
         linear-gradient(160deg, var(--bg-top), var(--bg-bottom));
       background-attachment: fixed;
       color: var(--text);
@@ -47,9 +49,9 @@
       background: var(--card-bg);
       border-radius: 18px;
       box-shadow:
-        0 1px 2px rgba(16, 24, 40, 0.04),
-        0 24px 48px -12px rgba(0, 51, 85, 0.16),
-        0 0 0 1px rgba(0, 51, 85, 0.04);
+        0 1px 2px rgba(0, 0, 0, 0.3),
+        0 24px 48px -12px rgba(0, 0, 0, 0.55),
+        0 0 0 1px rgba(255, 255, 255, 0.04);
       max-width: 460px;
       width: 100%;
       padding: 48px 42px 40px;
@@ -144,24 +146,24 @@
       font-size: 0.98rem;
       font-family: inherit;
       color: var(--text);
-      background: #0f1c29;
+      background: var(--input-bg);
       transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
     }
 
     input::placeholder {
-      color: #a9b2bd;
+      color: #5b6b7c;
     }
 
     input:hover,
     select:hover {
-      border-color: #c3ccd6;
+      border-color: #33495e;
     }
 
     input:focus,
     select:focus {
       outline: none;
       border-color: var(--accent);
-      background: #fff;
+      background: var(--input-bg-focus);
       box-shadow: 0 0 0 4px var(--accent-soft);
     }
 
@@ -170,13 +172,13 @@
     }
 
     input.invalid:focus {
-      box-shadow: 0 0 0 4px rgba(179, 38, 30, 0.1);
+      box-shadow: 0 0 0 4px rgba(255, 122, 122, 0.15);
     }
 
     select {
       appearance: none;
       -webkit-appearance: none;
-      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' stroke='%23003355' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' stroke='%239aa8ba' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
       background-repeat: no-repeat;
       background-position: right 15px center;
       padding-right: 38px;
@@ -232,13 +234,13 @@
       letter-spacing: 0.03em;
       text-transform: uppercase;
       cursor: pointer;
-      box-shadow: 0 10px 20px -8px rgba(0, 51, 85, 0.45);
+      box-shadow: 0 10px 20px -8px rgba(47, 111, 209, 0.45);
       transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
     }
 
     button[type="submit"]:hover:not(:disabled) {
       transform: translateY(-1px);
-      box-shadow: 0 14px 24px -8px rgba(0, 51, 85, 0.5);
+      box-shadow: 0 14px 24px -8px rgba(47, 111, 209, 0.55);
     }
 
     button[type="submit"]:active:not(:disabled) {
@@ -287,9 +289,9 @@
     }
 
     .form-message.error {
-      background: #fbeceb;
+      background: rgba(255, 122, 122, 0.12);
       color: var(--error);
-      border: 1px solid rgba(179, 38, 30, 0.15);
+      border: 1px solid rgba(255, 122, 122, 0.25);
     }
 
     .success-panel {
@@ -307,7 +309,7 @@
       height: 56px;
       margin: 0 auto 18px;
       border-radius: 50%;
-      background: rgba(31, 122, 61, 0.1);
+      background: rgba(74, 222, 128, 0.14);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -414,7 +416,7 @@
     <div class="success-panel" id="successPanel">
       <div class="icon">
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M20 6L9 17l-5-5" stroke="#1f7a3d" stroke-width="2.4" stroke-linecap="round"
+          <path d="M20 6L9 17l-5-5" stroke="#4ade80" stroke-width="2.4" stroke-linecap="round"
             stroke-linejoin="round" />
         </svg>
       </div>
