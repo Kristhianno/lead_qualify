@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Qualifica Leads | ALPHADATA</title>
+  <title>Buscar Leads | ALPHADATA</title>
   <style>
     :root {
       --accent: #2f6fd1;
@@ -21,6 +21,12 @@
       --border: #24374a;
       --error: #ff7a7a;
       --success: #4ade80;
+      --hot: #ff7a7a;
+      --hot-soft: rgba(255, 122, 122, 0.10);
+      --warn: #d4af73;
+      --warn-soft: rgba(212, 175, 115, 0.10);
+      --cold: #9aa8ba;
+      --cold-soft: rgba(154, 168, 186, 0.08);
     }
 
     * {
@@ -52,7 +58,7 @@
         0 1px 2px rgba(0, 0, 0, 0.3),
         0 24px 48px -12px rgba(0, 0, 0, 0.55),
         0 0 0 1px rgba(255, 255, 255, 0.04);
-      max-width: 460px;
+      max-width: 720px;
       width: 100%;
       padding: 48px 42px 40px;
       overflow: hidden;
@@ -167,11 +173,13 @@
       box-shadow: 0 0 0 4px var(--accent-soft);
     }
 
-    input.invalid {
+    input.invalid,
+    select.invalid {
       border-color: var(--error);
     }
 
-    input.invalid:focus {
+    input.invalid:focus,
+    select.invalid:focus {
       box-shadow: 0 0 0 4px rgba(255, 122, 122, 0.15);
     }
 
@@ -196,30 +204,12 @@
       display: block;
     }
 
-    .checkbox-field {
-      flex-direction: row;
-      align-items: flex-start;
-      gap: 11px;
-      padding-top: 4px;
-    }
-
-    .checkbox-field input[type="checkbox"] {
-      margin-top: 2px;
-      width: 18px;
-      height: 18px;
-      accent-color: var(--accent);
-      flex-shrink: 0;
-      cursor: pointer;
-    }
-
-    .checkbox-field label {
-      font-weight: 400;
-      font-size: 0.83rem;
-      text-transform: none;
-      letter-spacing: normal;
+    .privacy-note {
+      font-size: 0.78rem;
       color: var(--text-muted);
+      text-align: center;
+      margin: 2px 0 0;
       line-height: 1.5;
-      cursor: pointer;
     }
 
     button[type="submit"] {
@@ -294,6 +284,12 @@
       border: 1px solid rgba(255, 122, 122, 0.25);
     }
 
+    .form-message.info {
+      background: var(--accent-soft);
+      color: var(--accent-light);
+      border: 1px solid rgba(47, 111, 209, 0.25);
+    }
+
     .success-panel {
       display: none;
       text-align: center;
@@ -334,6 +330,131 @@
       font-size: 0.94rem;
     }
 
+    .results-panel {
+      display: none;
+      margin-top: 28px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+    }
+
+    .results-panel.show {
+      display: block;
+    }
+
+    .results-summary {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      margin: 0 0 16px;
+    }
+
+    .results-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .lead-card {
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 16px 18px;
+    }
+
+    .card-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .lead-card .empresa {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--accent-light);
+      margin: 0 0 4px;
+      line-height: 1.3;
+    }
+
+    .lead-card .cnpj {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      margin: 0 0 10px;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .tag {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+
+    .tag.segmento {
+      background: var(--accent-soft);
+      color: var(--accent-light);
+    }
+
+    .tag.situacao-ativa {
+      background: rgba(74, 222, 128, 0.14);
+      color: var(--success);
+    }
+
+    .tag.local {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-muted);
+    }
+
+    .tag.tier-quente {
+      background: var(--hot-soft);
+      color: var(--hot);
+    }
+
+    .tag.tier-atencao {
+      background: var(--warn-soft);
+      color: var(--warn);
+    }
+
+    .tag.tier-desqualificado {
+      background: var(--cold-soft);
+      color: var(--cold);
+    }
+
+    .contact-info {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-bottom: 10px;
+      word-break: break-word;
+    }
+
+    .ai-insight {
+      font-size: 0.8rem;
+      color: var(--text);
+      line-height: 1.5;
+      background: var(--accent-soft);
+      border-left: 2px solid var(--accent);
+      border-radius: 6px;
+      padding: 8px 10px;
+    }
+
+    .ai-insight .ai-label {
+      display: block;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--accent-light);
+      margin-bottom: 3px;
+    }
+
     @media (max-width: 480px) {
       .card {
         padding: 36px 26px 32px;
@@ -348,60 +469,71 @@
   <div class="card">
     <header>
       <span class="eyebrow"><img src="LogoALPHADATA.png" alt="ALPHADATA" class="brand-logo"></span>
-      <h1>Fale com um especialista</h1>
-      <p class="subtitle">Preencha os dados abaixo e agende uma demonstração personalizada.</p>
+      <h1>Buscar empresas por segmento</h1>
+      <p class="subtitle">Encontre empresas ativas por segmento, estado e cidade — os resultados são enriquecidos
+        automaticamente e enviados para o Kanban de Leads.</p>
     </header>
 
-    <form id="leadForm" novalidate>
+    <form id="searchForm" novalidate>
       <div class="field">
-        <label for="nome">Nome completo</label>
-        <input type="text" id="nome" name="nome" required autocomplete="name">
-        <span class="field-error" id="err-nome"></span>
-      </div>
-
-      <div class="field">
-        <label for="email">Email corporativo</label>
-        <input type="email" id="email" name="email" required autocomplete="email">
-        <span class="field-error" id="err-email"></span>
-      </div>
-
-      <div class="field">
-        <label for="empresa">Nome da empresa</label>
-        <input type="text" id="empresa" name="empresa" autocomplete="organization">
-        <span class="field-error" id="err-empresa"></span>
-      </div>
-
-      <div class="field">
-        <label for="cnpj">CNPJ da empresa</label>
-        <input type="text" id="cnpj" name="cnpj" required inputmode="text" maxlength="18"
-          placeholder="00.000.000/0000-00">
-        <span class="field-error" id="err-cnpj"></span>
-      </div>
-
-      <div class="field">
-        <label for="telefone">WhatsApp</label>
-        <input type="tel" id="telefone" name="telefone" required inputmode="numeric" maxlength="15"
-          placeholder="(00) 00000-0000">
-        <span class="field-error" id="err-telefone"></span>
-      </div>
-
-      <div class="field">
-        <label for="ticket_medio_mensal">Qual o ticket médio mensal da sua operação?</label>
-        <select id="ticket_medio_mensal" name="ticket_medio_mensal" required>
-          <option value="" selected disabled>Selecione uma opção</option>
-          <option value="3000">Até R$ 5 mil/mês</option>
-          <option value="7500">R$ 5 mil a R$ 10 mil/mês</option>
-          <option value="15000">Acima de R$ 10 mil/mês</option>
+        <label for="segmento">Segmento</label>
+        <select id="segmento" name="segmento" required>
+          <option value="" selected disabled>Selecione um segmento</option>
+          <option value="tecnologia">Tecnologia / Desenvolvimento de Software</option>
+          <option value="varejo_vestuario">Comércio Varejista de Vestuário</option>
+          <option value="alimentacao">Alimentação (Restaurantes)</option>
+          <option value="construcao_civil">Construção Civil</option>
+          <option value="saude_odonto">Saúde (Clínicas Odontológicas)</option>
+          <option value="educacao_idiomas">Educação (Ensino de Idiomas)</option>
+          <option value="beleza_estetica">Beleza e Estética</option>
+          <option value="contabilidade_consultoria">Contabilidade e Consultoria</option>
+          <option value="logistica_transporte">Logística e Transporte de Cargas</option>
+          <option value="ecommerce">E-commerce</option>
         </select>
-        <span class="field-error" id="err-ticket_medio_mensal"></span>
+        <span class="field-error" id="err-segmento"></span>
       </div>
 
-      <div class="field checkbox-field">
-        <input type="checkbox" id="lgpd_consentimento" name="lgpd_consentimento" required>
-        <label for="lgpd_consentimento">Concordo em receber contato comercial e que meus dados sejam tratados conforme a
-          Política de Privacidade.</label>
+      <div class="field">
+        <label for="estado">Estado</label>
+        <select id="estado" name="estado" required>
+          <option value="" selected disabled>Selecione um estado</option>
+          <option value="AC">AC — Acre</option>
+          <option value="AL">AL — Alagoas</option>
+          <option value="AP">AP — Amapá</option>
+          <option value="AM">AM — Amazonas</option>
+          <option value="BA">BA — Bahia</option>
+          <option value="CE">CE — Ceará</option>
+          <option value="DF">DF — Distrito Federal</option>
+          <option value="ES">ES — Espírito Santo</option>
+          <option value="GO">GO — Goiás</option>
+          <option value="MA">MA — Maranhão</option>
+          <option value="MT">MT — Mato Grosso</option>
+          <option value="MS">MS — Mato Grosso do Sul</option>
+          <option value="MG">MG — Minas Gerais</option>
+          <option value="PA">PA — Pará</option>
+          <option value="PB">PB — Paraíba</option>
+          <option value="PR">PR — Paraná</option>
+          <option value="PE">PE — Pernambuco</option>
+          <option value="PI">PI — Piauí</option>
+          <option value="RJ">RJ — Rio de Janeiro</option>
+          <option value="RN">RN — Rio Grande do Norte</option>
+          <option value="RS">RS — Rio Grande do Sul</option>
+          <option value="RO">RO — Rondônia</option>
+          <option value="RR">RR — Roraima</option>
+          <option value="SC">SC — Santa Catarina</option>
+          <option value="SP">SP — São Paulo</option>
+          <option value="SE">SE — Sergipe</option>
+          <option value="TO">TO — Tocantins</option>
+        </select>
+        <span class="field-error" id="err-estado"></span>
       </div>
-      <span class="field-error" id="err-lgpd_consentimento"></span>
+
+      <div class="field">
+        <label for="cidade">Cidade</label>
+        <input type="text" id="cidade" name="cidade" required autocomplete="address-level2"
+          placeholder="Ex: São Paulo">
+        <span class="field-error" id="err-cidade"></span>
+      </div>
 
       <div style="position:absolute; left:-9999px; top:-9999px;" aria-hidden="true">
         <label for="site">Site</label>
@@ -409,47 +541,68 @@
       </div>
 
       <div class="form-message error" id="formError"></div>
+      <div class="form-message info" id="formInfo"></div>
 
-      <button type="submit" id="submitBtn">Quero falar com um especialista</button>
+      <button type="submit" id="submitBtn">Buscar empresas</button>
+
+      <p class="privacy-note">Os dados exibidos vêm de registros públicos da Receita Federal (Minha Receita /
+        CNPJ.gov.br).</p>
     </form>
 
-    <div class="success-panel" id="successPanel">
+    <div class="success-panel" id="botNotice">
       <div class="icon">
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M20 6L9 17l-5-5" stroke="#4ade80" stroke-width="2.4" stroke-linecap="round"
             stroke-linejoin="round" />
         </svg>
       </div>
-      <h2>Recebemos seus dados!</h2>
-      <p>Um especialista da ALPHADATA entrará em contato em breve para agendar sua demonstração.</p>
+      <h2>Busca enviada!</h2>
+      <p>Assim que os resultados forem processados, eles aparecem no Kanban de Leads.</p>
+    </div>
+
+    <div class="results-panel" id="resultsPanel">
+      <p class="results-summary" id="resultsSummary"></p>
+      <div class="results-list" id="resultsList"></div>
     </div>
 
     <a href="kanban.html" class="btn-secondary">Ver leads no Kanban</a>
   </div>
 
   <script>
-    // URL de produção do webhook do n8n (path /webhook/form-lead-ALPHADATA.
-    const WEBHOOK_URL = "https://automacoes-n8n.m5jmff.easypanel.host/webhook/form-lead-ALPHADATA";
+    // URL de produção do webhook do n8n (path /webhook/prospect-search-ALPHADATA).
+    const WEBHOOK_URL = "https://automacoes-n8n.m5jmff.easypanel.host/webhook/prospect-search-ALPHADATA";
 
-    const form = document.getElementById('leadForm');
+    const form = document.getElementById('searchForm');
     const submitBtn = document.getElementById('submitBtn');
     const formError = document.getElementById('formError');
-    const successPanel = document.getElementById('successPanel');
+    const formInfo = document.getElementById('formInfo');
+    const botNotice = document.getElementById('botNotice');
+    const resultsPanel = document.getElementById('resultsPanel');
+    const resultsSummary = document.getElementById('resultsSummary');
+    const resultsList = document.getElementById('resultsList');
 
-    const nomeInput = document.getElementById('nome');
-    const emailInput = document.getElementById('email');
-    const empresaInput = document.getElementById('empresa');
-    const cnpjInput = document.getElementById('cnpj');
-    const telefoneInput = document.getElementById('telefone');
-    const ticketSelect = document.getElementById('ticket_medio_mensal');
-    const lgpdCheckbox = document.getElementById('lgpd_consentimento');
+    const segmentoSelect = document.getElementById('segmento');
+    const estadoSelect = document.getElementById('estado');
+    const cidadeInput = document.getElementById('cidade');
     const honeypotInput = document.getElementById('site');
 
-    // ---------- Máscaras ----------
+    const TIER_INFO = {
+      quente: { label: '🔥 Quente', cls: 'tier-quente' },
+      atencao: { label: '🟡 Em Atenção', cls: 'tier-atencao' },
+      desqualificado: { label: '⚪ Desqualificado', cls: 'tier-desqualificado' }
+    };
 
-    function maskCNPJ(value) {
-      // Alfanumérico: mantém apenas letras/dígitos, uppercase, limita a 14 caracteres
-      let clean = value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 14);
+    // ---------- Helpers ----------
+
+    function escapeHtml(value) {
+      const div = document.createElement('div');
+      div.textContent = value == null ? '' : String(value);
+      return div.innerHTML;
+    }
+
+    function formatCNPJ(raw) {
+      if (!raw) return 'CNPJ não informado';
+      const clean = String(raw).toUpperCase().replace(/[^A-Z0-9]/g, '');
       let out = '';
       for (let i = 0; i < clean.length; i++) {
         if (i === 2 || i === 5) out += '.';
@@ -459,70 +612,6 @@
       }
       return out;
     }
-
-    cnpjInput.addEventListener('input', (e) => {
-      const cursorAtEnd = e.target.selectionStart === e.target.value.length;
-      e.target.value = maskCNPJ(e.target.value);
-      if (cursorAtEnd) {
-        e.target.setSelectionRange(e.target.value.length, e.target.value.length);
-      }
-    });
-
-    function maskPhone(value) {
-      let digits = value.replace(/\D/g, '').slice(0, 11);
-      let out = '';
-      if (digits.length > 0) out += '(' + digits.slice(0, 2);
-      if (digits.length >= 2) out += ') ';
-      if (digits.length > 2) out += digits.slice(2, 7);
-      if (digits.length > 7) out += '-' + digits.slice(7, 11);
-      return out;
-    }
-
-    telefoneInput.addEventListener('input', (e) => {
-      e.target.value = maskPhone(e.target.value);
-    });
-
-    // ---------- Validação de CNPJ alfanumérico ----------
-    // A partir de julho de 2026 a Receita Federal emite CNPJs alfanuméricos:
-    // os 12 primeiros caracteres podem ser letras maiúsculas ou dígitos, os 2
-    // dígitos verificadores continuam numéricos. Para o cálculo, cada caractere
-    // é convertido pelo código ASCII menos 48 (ex.: "0"->0, "9"->9, "A"->17).
-
-    function charValue(ch) {
-      return ch.charCodeAt(0) - 48;
-    }
-
-    function calcDV(base, weights) {
-      let sum = 0;
-      for (let i = 0; i < base.length; i++) {
-        sum += charValue(base[i]) * weights[i];
-      }
-      const remainder = sum % 11;
-      return remainder < 2 ? 0 : 11 - remainder;
-    }
-
-    function isValidCNPJ(raw) {
-      const clean = raw.toUpperCase().replace(/[^A-Z0-9]/g, '');
-      if (clean.length !== 14) return false;
-
-      // Os 2 últimos caracteres (dígitos verificadores) devem ser numéricos
-      if (!/^\d{2}$/.test(clean.slice(12))) return false;
-
-      // Rejeita sequências com todos os caracteres iguais (ex: "00000000000000")
-      if (/^(.)\1{13}$/.test(clean)) return false;
-
-      const base12 = clean.slice(0, 12);
-
-      const weights1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
-      const dv1 = calcDV(base12, weights1);
-
-      const weights2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
-      const dv2 = calcDV(base12 + String(dv1), weights2);
-
-      return clean === base12 + String(dv1) + String(dv2);
-    }
-
-    // ---------- Validação e envio ----------
 
     function setFieldError(id, message) {
       const el = document.getElementById('err-' + id);
@@ -537,64 +626,97 @@
     }
 
     function clearAllErrors() {
-      ['nome', 'email', 'empresa', 'cnpj', 'telefone', 'ticket_medio_mensal', 'lgpd_consentimento'].forEach(id => setFieldError(id, ''));
+      ['segmento', 'estado', 'cidade'].forEach(id => setFieldError(id, ''));
       formError.classList.remove('show');
       formError.textContent = '';
-    }
-
-    function isValidEmail(value) {
-      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+      formInfo.classList.remove('show');
+      formInfo.textContent = '';
     }
 
     function validateForm() {
       let valid = true;
 
-      if (!nomeInput.value.trim()) {
-        setFieldError('nome', 'Informe seu nome completo.');
+      if (!segmentoSelect.value) {
+        setFieldError('segmento', 'Selecione um segmento.');
         valid = false;
       }
 
-      if (!emailInput.value.trim() || !isValidEmail(emailInput.value.trim())) {
-        setFieldError('email', 'Informe um email corporativo válido.');
+      if (!estadoSelect.value) {
+        setFieldError('estado', 'Selecione um estado.');
         valid = false;
       }
 
-      if (!cnpjInput.value.trim()) {
-        setFieldError('cnpj', 'Informe o CNPJ da empresa.');
-        valid = false;
-      } else if (!isValidCNPJ(cnpjInput.value)) {
-        setFieldError('cnpj', 'CNPJ inválido. Verifique os dados digitados.');
-        valid = false;
-      }
-
-      const phoneDigits = telefoneInput.value.replace(/\D/g, '');
-      if (!phoneDigits || phoneDigits.length < 10) {
-        setFieldError('telefone', 'Informe um WhatsApp válido com DDD.');
-        valid = false;
-      }
-
-      if (!ticketSelect.value) {
-        setFieldError('ticket_medio_mensal', 'Selecione uma opção.');
-        valid = false;
-      }
-
-      if (!lgpdCheckbox.checked) {
-        setFieldError('lgpd_consentimento', 'É necessário concordar para continuar.');
+      if (!cidadeInput.value.trim()) {
+        setFieldError('cidade', 'Informe a cidade.');
         valid = false;
       }
 
       return valid;
     }
 
+    // ---------- Renderização dos resultados ----------
+
+    function buildResultCard(company) {
+      const tier = TIER_INFO[company.tier] || { label: company.tier || 'Sem classificação', cls: '' };
+
+      const aiInsightHtml = (company.resumo_ia || company.abordagem_sugerida) ? `
+        <div class="ai-insight">
+          <span class="ai-label">Sugestão da IA</span>
+          ${company.resumo_ia ? escapeHtml(company.resumo_ia) + '<br>' : ''}
+          ${company.abordagem_sugerida ? escapeHtml(company.abordagem_sugerida) : ''}
+        </div>` : '';
+
+      return `
+      <article class="lead-card">
+        <div class="card-head">
+          <p class="empresa">${escapeHtml(company.razao_social || 'Empresa não identificada')}</p>
+          <span class="tag ${tier.cls}">${tier.label}</span>
+        </div>
+        <p class="cnpj">${escapeHtml(formatCNPJ(company.cnpj))}</p>
+        <div class="tags">
+          ${company.cnae_descricao ? `<span class="tag segmento">${escapeHtml(company.cnae_descricao)}</span>` : ''}
+          <span class="tag situacao-ativa">${escapeHtml(company.situacao_cadastral || 'ATIVA')}</span>
+          ${company.municipio ? `<span class="tag local">${escapeHtml(company.municipio)}${company.uf ? '/' + escapeHtml(company.uf) : ''}</span>` : ''}
+        </div>
+        <div class="contact-info">
+          ${escapeHtml(company.email || 'Email não informado')}<br>
+          ${escapeHtml(company.telefone || 'Telefone não informado')}<br>
+          ${escapeHtml(company.socios || 'Sócios não informados')}
+        </div>
+        ${aiInsightHtml}
+      </article>
+    `;
+    }
+
+    function renderResults(data) {
+      const companies = Array.isArray(data.companies) ? data.companies : [];
+      const cidade = data.cidade || cidadeInput.value.trim();
+      const estado = data.estado || estadoSelect.value;
+
+      if (companies.length === 0) {
+        formInfo.textContent = `Nenhuma empresa ativa encontrada em ${cidade}/${estado} para esse segmento.`;
+        formInfo.classList.add('show');
+        resultsPanel.classList.remove('show');
+        return;
+      }
+
+      resultsSummary.textContent = `${companies.length} empresa(s) ativa(s) encontrada(s) em ${cidade}/${estado}.`;
+      resultsList.innerHTML = companies.map(buildResultCard).join('');
+      resultsPanel.classList.add('show');
+    }
+
+    // ---------- Envio ----------
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       clearAllErrors();
+      resultsPanel.classList.remove('show');
 
       // Honeypot: bots costumam preencher todos os campos, incluindo os ocultos.
       // Um preenchimento aqui finge sucesso sem enviar nada ao webhook.
       if (honeypotInput.value.trim()) {
         form.style.display = 'none';
-        successPanel.classList.add('show');
+        botNotice.classList.add('show');
         return;
       }
 
@@ -602,22 +724,15 @@
         return;
       }
 
-      const cnpjClean = cnpjInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-      const phoneDigits = telefoneInput.value.replace(/\D/g, '');
-      const phoneIntl = '55' + phoneDigits;
-
       const payload = {
-        nome: nomeInput.value.trim(),
-        email: emailInput.value.trim(),
-        empresa: empresaInput.value.trim(),
-        cnpj: cnpjClean,
-        telefone: phoneIntl,
-        ticket_medio_mensal: Number(ticketSelect.value)
+        segmento: segmentoSelect.value,
+        estado: estadoSelect.value,
+        cidade: cidadeInput.value.trim()
       };
 
       submitBtn.disabled = true;
       const originalText = submitBtn.textContent;
-      submitBtn.textContent = 'Enviando...';
+      submitBtn.textContent = 'Buscando...';
 
       try {
         const response = await fetch(WEBHOOK_URL, {
@@ -630,11 +745,12 @@
           throw new Error('Resposta não-2xx do servidor: ' + response.status);
         }
 
-        form.style.display = 'none';
-        successPanel.classList.add('show');
+        const data = await response.json();
+        renderResults(data);
       } catch (err) {
-        formError.textContent = 'Não foi possível enviar seus dados agora. Verifique sua conexão e tente novamente em instantes.';
+        formError.textContent = 'Não foi possível buscar empresas agora. Verifique sua conexão e tente novamente em instantes.';
         formError.classList.add('show');
+      } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = originalText;
       }

@@ -515,7 +515,7 @@
           <p class="empresa">${escapeHtml(empresaNome)}</p>
           <button type="button" class="delete-btn" aria-label="Excluir card" title="Excluir card">&times;</button>
         </div>
-        <p class="contato-linha">${escapeHtml(lead.nome || 'Contato não informado')} &middot; <span class="ticket">${escapeHtml(formatCurrencyBRL(lead.ticket_medio_mensal))}</span></p>
+        <p class="contato-linha">${escapeHtml(lead.nome || lead.socios || 'Contato não informado')} &middot; <span class="ticket">${escapeHtml(formatCurrencyBRL(lead.ticket_medio_mensal))}</span></p>
         <p class="cnpj">${escapeHtml(formatCNPJ(lead.cnpj))}</p>
         <div class="tags">${tagsHtml}</div>
         <div class="contact-info">

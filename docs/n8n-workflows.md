@@ -133,6 +133,123 @@ sai, com o texto "Nenhum lead cadastrado na planilha ainda."
 
 ---
 
+## Migração para prospecção ativa (busca por segmento/UF/cidade)
+
+O formulário deixou de capturar um lead por vez (nome/e-mail/CNPJ/ticket)
+e passou a **buscar empresas ativas por segmento + estado + cidade**,
+mostrar os resultados na tela e rodar cada empresa encontrada pelo mesmo
+pipeline de qualificação (IA, tier, WhatsApp, HubSpot). Novo webhook:
+`POST /webhook/prospect-search-ALPHADATA` (o antigo
+`/webhook/form-lead-ALPHADATA` foi desativado).
+
+### Fonte de dados: Minha Receita
+
+[Minha Receita](https://minhareceita.org) é uma API pública, gratuita e
+open-source (github.com/cuducos/minha-receita) sobre os dados abertos de
+CNPJ da Receita Federal. A instância pública só aceita `cnae` + `uf` como
+filtro no servidor (sem filtro de cidade ou situação cadastral, por
+limitação de custo de hospedagem do próprio projeto) — por isso o filtro
+de cidade + `situacao_cadastral == ATIVA` é feito depois, dentro do n8n
+(node `Filtrar Cidade e Situacao Ativa`), junto com um cap de 30 empresas
+por busca. A resposta de busca já vem com o mesmo schema completo do
+lookup individual (e-mail, telefone, `qsa`/sócios) — BrasilAPI/OpenCNPJ só
+entram como fallback quando uma empresa específica vem sem `qsa`.
+
+Antes de mexer no workflow, valide isso ao vivo:
+
+```bash
+curl -s "https://minhareceita.org/?cnae=6201501&uf=SP&limit=5" | jq .
+```
+
+Campos confirmados na resposta (2026-08): `municipio` (string maiúscula
+sem acento, ex. `"SAO PAULO"`), `descricao_situacao_cadastral` (ex.
+`"ATIVA"`), `porte` (`"MICRO EMPRESA"` / `"EMPRESA DE PEQUENO PORTE"` /
+`"DEMAIS"`), `qsa[].nome_socio`, `ddd_telefone_1`, `email`, `capital_social`
+— e o parâmetro `cnae` espera dígitos crus (`6201501`), não formatado.
+
+### Nodes novos
+
+`Webhook - Buscar Empresas` → `IF - Segurança` (reaproveitado) →
+`Normalizar Busca` → `Mapear Segmento para CNAE` →
+`Buscar Empresas - Minha Receita` → `Extrair Lista de Empresas` →
+`Filtrar Cidade e Situacao Ativa` → `IF - Dados Completos da Minha
+Receita` → (`Adaptar Dados Minha Receita` ou fallback
+`Enriquecer BrasilAPI`/`Enriquecer OpenCNPJ`, sem mudança de lógica) →
+`Calcula e Classifica tier` → ... (pipeline existente) → `HubSpot - Upsert
+Contato` → `Agregar Resultado Final` (novo) → `Respond - Resultado da
+Busca` (novo).
+
+### Nodes removidos
+
+`Webhook - Formulário Site1`, `Normalizar Payload`, `Respond - Quente`,
+`Respond - Atenção`, `Respond - Desqualificado` — substituídos por um único
+`Respond - Resultado da Busca`, alimentado por `Agregar Resultado Final`.
+
+### A pegadinha do `items[0]`/`.first()` em execução com múltiplos itens
+
+Os Code nodes do pipeline original (`Formatar Dados BrasilAPI/OpenCNPJ`,
+`Calcula e Classifica tier`, `Montar Prompt IA`, `Parse Resposta IA`,
+`Montar Resumo (Quente/Atenção)`) foram escritos como "Run Once for All
+Items" usando `items[0].json` e `$('Normalizar Payload').first().json` —
+seguro só porque sempre passava exatamente 1 lead por execução. Buscar até
+30 empresas na mesma execução faria esses nodes processarem só a empresa
+#1 (ou colar os dados da empresa #1 em todas as outras), silenciosamente.
+Todos foram convertidos para **"Run Once for Each Item"**
+(`"mode": "runOnceForEachItem"` nos parâmetros do node), o código passou a
+usar `$json` no lugar de `items[0].json`, `$('<node>').item.json` no lugar
+de `.first().json` (o acessor `.item` resolve o item específico que gerou
+o item atual, ao contrário de `.first()`), e o `return` passou a ser um
+objeto único `{ json: {...} }`, não mais um array — é a diferença de
+contrato entre os dois modos do Code node do n8n.
+
+### `HubSpot - Upsert Contato`
+
+`idProperty` trocado de `'email'` para `'cnpj'` (empresa prospectada nem
+sempre tem e-mail, e não há "pessoa" que preencheu o formulário — quem
+existe é a empresa). Isso exige marcar a propriedade `cnpj` como **valor
+único** no HubSpot (checkbox na criação da propriedade) — sem isso o
+upsert em lote falha. `firstname`/`ticket_medio_mensal` saíram do body;
+entraram `segmento`, `porte`, `capital_social`.
+
+### Tier por porte + capital social
+
+Empresa prospectada não informa `ticket_medio_mensal` (ninguém preencheu
+formulário). O node `Calcula e Classifica tier` passou a classificar por
+`porte` + `capital_social` (dados que a própria Receita já devolve):
+
+```js
+const CAPITAL_SOCIAL_QUENTE = 100000;
+const CAPITAL_SOCIAL_ATENCAO = 20000;
+// porte === 'DEMAIS' && capital_social >= CAPITAL_SOCIAL_QUENTE   -> quente
+// porte === 'DEMAIS' (capital menor) OU
+// porte === 'EPP' && capital_social >= CAPITAL_SOCIAL_ATENCAO     -> atencao
+// resto (ME, ou EPP com capital baixo)                            -> desqualificado
+```
+
+São valores de partida, não calibrados — **recalibrar depois de rodar
+buscas reais** e ver a distribuição de porte/capital do segmento
+pesquisado (mesmo espírito de constante tunável que `HUBSPOT_LIFECYCLE_STAGE`
+acima).
+
+### Mapeamento segmento → CNAE
+
+Definido no node `Mapear Segmento para CNAE`, também editável/ilustrativo:
+
+| Segmento (slug) | CNAE |
+|---|---|
+| `tecnologia` | 6201501 |
+| `varejo_vestuario` | 4781400 |
+| `alimentacao` | 5611201 |
+| `construcao_civil` | 4120400 |
+| `saude_odonto` | 8630504 |
+| `educacao_idiomas` | 8593700 |
+| `beleza_estetica` | 9602501 |
+| `contabilidade_consultoria` | 6920601 |
+| `logistica_transporte` | 4930202 |
+| `ecommerce` | 4791100 |
+
+---
+
 ## Checklist antes de ativar
 
 ### 1. Credencial da OpenAI
@@ -159,8 +276,12 @@ sai, com o texto "Nenhum lead cadastrado na planilha ainda."
 3. Crie as propriedades customizadas de contato **antes** de rodar o
    workflow: **Configurações → Propriedades → Contato → Criar
    propriedade**:
-   - `cnpj` (texto de linha única)
-   - `ticket_medio_mensal` (número ou texto — o node envia como string)
+   - `cnpj` (texto de linha única) — marque **"Valor deve ser único para
+     este objeto"** ao criar; o upsert em lote usa `cnpj` como
+     `idProperty`, então isso é obrigatório, não opcional.
+   - `segmento` (texto de linha única)
+   - `porte` (texto de linha única)
+   - `capital_social` (número ou texto — o node envia como string)
    - `lead_tier` (texto de linha única)
    - `resumo_ia` (texto multi-linha)
 4. n8n → **Credentials → New → Header Auth** → Name: `Authorization`,
@@ -185,24 +306,48 @@ sai, com o texto "Nenhum lead cadastrado na planilha ainda."
 
 ### 3. Colunas novas na planilha do Google Sheets
 
-Na planilha `CadastroLeads` (aba `Leads`), adicione duas colunas no
-cabeçalho, com esses nomes exatos (sensível a maiúsculas/minúsculas):
-`resumo_ia` e `abordagem_sugerida`.
+Na planilha `CadastroLeads` (aba `Leads`), confira/adicione no cabeçalho,
+com esses nomes exatos (sensível a maiúsculas/minúsculas):
+`resumo_ia`, `abordagem_sugerida` (da migração anterior) e, novas desta
+migração, `segmento`, `cidade`, `uf`, `socios`. Aproveite para conferir se
+o cabeçalho já usa `cnae_descricao`/`fonte_enriquecimento` (com essa
+grafia) — o node `Salvar Lead na Planilha` sempre produziu esses nomes,
+mas o cache de schema do editor tinha `cnae_decricao`/`fonte_enriquecedora`
+(grafia diferente); se o cabeçalho real da planilha seguiu o cache errado
+em vez do que o código sempre gerou, essas duas colunas nunca receberam
+dado — corrija o cabeçalho enquanto já está mexendo na planilha.
 
 ### 4. Teste
 
 1. Ative o workflow.
-2. Envie um lead de teste pelo formulário (https://kristhianno.github.io/lead_qualify).
-3. Confira, na execução do n8n:
+2. Rode o `curl` de validação da Minha Receita (seção "Migração para
+   prospecção ativa" acima) antes de testar pela UI.
+3. Faça uma busca de teste pelo formulário
+   (https://kristhianno.github.io/lead_qualify) — segmento + estado + uma
+   cidade menor, para limitar o volume no primeiro teste (ex.:
+   Curitiba/PR).
+4. Confira, na execução do n8n:
    - `IF - Segurança` aprovou (true).
-   - `OpenAI - Qualificação` retornou 200 e `Parse Resposta IA` populou
-     `resumo_ia`/`abordagem_sugerida`.
-   - A linha na planilha tem as duas colunas novas preenchidas.
-   - Se o ticket informado for ≥ R$ 5 mil/mês (`quente` ou `atenção`):
-     o WhatsApp chegou (como já acontecia) **e** um contato novo apareceu
-     no HubSpot.
-4. Abra o Kanban (https://kristhianno.github.io/lead_qualify/kanban.html)
-   e confirme que o card do lead mostra o bloco "Sugestão da IA".
+   - `Filtrar Cidade e Situacao Ativa` produziu ≤30 itens, todos com
+     `descricao_situacao_cadastral == 'ATIVA'` e município batendo a
+     cidade buscada.
+   - Cada empresa passou individualmente por `OpenAI - Qualificação` (não
+     só a primeira — é a regressão que o fix `runOnceForEachItem` existe
+     para evitar).
+   - A planilha ganhou uma linha por empresa, com `segmento`/`cidade`/
+     `uf`/`porte`/`capital_social`/`socios` preenchidos.
+   - Empresas `quente`/`atenção`: o WhatsApp chegou, uma mensagem por
+     empresa (não uma mensagem combinada, não zero).
+   - HubSpot mostra um contato upsertado por empresa (todos os tiers), com
+     `cnpj`/`segmento`/`porte`/`capital_social`/`lifecyclestage` corretos.
+5. No navegador, confirme que `index.html` mostrou a lista de resultados
+   (não travou em "Buscando...").
+6. Abra o Kanban (https://kristhianno.github.io/lead_qualify/kanban.html)
+   e confirme que os cards novos aparecem na coluna certa, com o bloco
+   "Sugestão da IA".
+7. Teste também o caso de zero resultados (segmento+estado+cidade
+   improvável) e confirme que `index.html` mostra "nenhuma empresa
+   encontrada" em vez de travar ou dar erro.
 
 ### 5. Credencial do Gmail (relatório diário)
 
@@ -242,18 +387,36 @@ cabeçalho, com esses nomes exatos (sensível a maiúsculas/minúsculas):
    às 08:00 todo dia — lembre que isso ativa o workflow inteiro,
    incluindo os outros dois fluxos já existentes.
 
+**Nota pós-migração para prospecção:** o bloco de "maior/menor ticket
+médio" do e-mail depende de `ticket_medio_mensal`, campo que só as linhas
+antigas (captura manual de lead) têm — linhas novas de prospecção vêm com
+esse campo vazio. Esse fluxo não foi alterado nesta migração (continua
+lendo `ticket_medio_mensal` normalmente), então o relatório tende a esvaziar
+esse bloco conforme a planilha for enchendo majoritariamente com resultados
+de busca. Ajustar isso é um passo futuro, fora do escopo desta migração.
+
 ---
 
 ## Notas de manutenção
 
 - **Custo controlado**: `IF - Segurança` bloqueia qualquer chamada direta
-  ao webhook antes de gastar com BrasilAPI/OpenAI/HubSpot.
+  ao webhook antes de gastar com Minha Receita/BrasilAPI/OpenAI/HubSpot; o
+  cap de 30 empresas por busca (`Filtrar Cidade e Situacao Ativa`) evita
+  que uma busca de segmento+UF muito genérica dispare dezenas de chamadas
+  de OpenAI/HubSpot de uma vez.
+- **Limitação de filtro da Minha Receita**: a instância pública só filtra
+  por `cnae`+`uf` no servidor — cidade e situação cadastral são filtradas
+  depois, no n8n, sobre o lote de até 1000 resultados trazido por
+  `Buscar Empresas - Minha Receita`. Buscas de segmento+UF muito amplos
+  combinados com cidades pequenas podem retornar poucos ou nenhum
+  resultado após o filtro; isso é esperado, não é bug.
 - **Resiliência**: tanto `OpenAI - Qualificação` quanto `HubSpot - Upsert
   Contato` têm `onError: continueRegularOutput` — se a OpenAI ou o
-  HubSpot falharem (rate limit, timeout), o lead ainda é salvo na
-  planilha e o SDR ainda recebe o alerta de WhatsApp; só o
-  enriquecimento por IA / sincronização de CRM daquele lead específico
-  fica incompleto.
+  HubSpot falharem (rate limit, timeout), a empresa ainda é salva na
+  planilha e o SDR ainda recebe o alerta de WhatsApp (quando aplicável);
+  só o enriquecimento por IA / sincronização de CRM daquela empresa
+  específica fica incompleto.
 - **Sem chave real em arquivo**: o `.env`/`.env.example` na raiz do repo
   são só um checklist pessoal — as credenciais de verdade ficam sempre no
   Credentials Manager do n8n (Header Auth), nunca em texto no repositório.
+  A Minha Receita não exige chave/autenticação.

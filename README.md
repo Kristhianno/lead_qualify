@@ -1,46 +1,54 @@
 # Lead Qualify — Driva
 
-Protótipo funcional de captura, enriquecimento e qualificação automática de
-leads B2B, inspirado nos 4 pilares da plataforma da [Driva](https://driva.io):
-inteligência de mercado, geração de leads, engajamento e IA.
+Protótipo funcional de prospecção, enriquecimento e qualificação automática
+de leads B2B, inspirado nos 4 pilares da plataforma da
+[Driva](https://driva.io): inteligência de mercado, geração de leads,
+engajamento e IA.
 
 **Formulário:** https://kristhianno.github.io/lead_qualify
 **Kanban de leads:** https://kristhianno.github.io/lead_qualify/kanban.html
 
 ## O que o projeto faz
 
-1. **Captura** — formulário público (`index.html`) com validação client-side
-   completa: nome, e-mail, CNPJ (inclusive o novo formato alfanumérico da
-   Receita Federal, com dígito verificador calculado), WhatsApp e ticket médio
-   mensal. Protegido contra bots com honeypot.
-2. **Enriquecimento** — o webhook do n8n consulta a BrasilAPI (com fallback
-   para OpenCNPJ) a partir do CNPJ para trazer razão social, CNAE e situação
-   cadastral.
+1. **Busca** — formulário público (`index.html`) onde o usuário informa
+   segmento, estado e cidade. Protegido contra bots com honeypot.
+2. **Prospecção e enriquecimento** — o webhook do n8n consulta a
+   [Minha Receita](https://minhareceita.org) (API pública, gratuita e
+   open-source sobre os dados abertos da Receita Federal) por CNAE + UF,
+   filtra os resultados por cidade e situação cadastral `ATIVA`, e traz
+   razão social, CNAE, porte, capital social, e-mail, telefone e sócios de
+   cada empresa. BrasilAPI/OpenCNPJ entram como fallback quando um registro
+   vem sem sócios (`qsa`) na busca inicial.
 3. **Qualificação com IA** — um modelo de linguagem (OpenAI) gera um resumo da
-   empresa e uma sugestão de abordagem comercial por lead.
-4. **Classificação** — os leads são segmentados automaticamente em `quente`,
-   `atenção` e `desqualificado`.
-5. **Ação** — leads `quente` e `atenção` disparam um alerta de WhatsApp em
-   tempo real para o time comercial via Evolution API; leads qualificados
-   são sincronizados com o HubSpot.
-6. **Visualização** — o Kanban (`kanban.html`) mostra os leads por coluna,
-   com os dados enriquecidos e a sugestão da IA.
+   empresa e uma sugestão de abordagem comercial por empresa encontrada.
+4. **Classificação** — cada empresa é segmentada automaticamente em `quente`,
+   `atenção` e `desqualificado` a partir do porte e do capital social.
+5. **Ação** — empresas `quente` e `atenção` disparam um alerta de WhatsApp em
+   tempo real para o time comercial via Evolution API; todas as empresas
+   encontradas são sincronizadas com o HubSpot.
+6. **Visualização** — os resultados aparecem na própria tela de busca e no
+   Kanban (`kanban.html`), com os dados enriquecidos e a sugestão da IA.
 
 ## Arquitetura
 
 ```mermaid
 flowchart TD
-    A[Formulário estático<br/>GitHub Pages] -->|POST /webhook/form-lead-driva| B[n8n: Webhook]
+    A[Formulário de busca<br/>GitHub Pages] -->|POST /webhook/prospect-search-ALPHADATA| B[n8n: Webhook]
     B --> C{Segurança<br/>origem + honeypot}
     C -->|reprovado| X[200 vazio<br/>execução encerrada]
-    C -->|aprovado| D[BrasilAPI / OpenCNPJ<br/>enriquecimento por CNPJ]
-    D --> F[Classificação<br/>tier: quente / atenção / desqualificado]
-    F --> E[OpenAI<br/>resumo + abordagem]
-    E --> G[(Google Sheets<br/>persistência dos leads)]
+    C -->|aprovado| D[Minha Receita<br/>busca por CNAE + UF]
+    D --> D2[Filtro: cidade + situação ATIVA<br/>cap de 30 empresas]
+    D2 --> D3{Sócios/qsa<br/>presentes?}
+    D3 -->|não| D4[BrasilAPI / OpenCNPJ<br/>fallback por CNPJ]
+    D3 -->|sim| F
+    D4 --> F[Classificação<br/>tier por porte + capital social]
+    F --> E[OpenAI<br/>resumo + abordagem, por empresa]
+    E --> G[(Google Sheets<br/>persistência das empresas)]
     F --> H{tier == quente<br/>ou atenção?}
-    H -->|sim| I[Evolution API<br/>alerta WhatsApp]
-    F --> J{tier != desqualificado?}
-    J -->|sim| K[HubSpot<br/>upsert contato + deal]
+    H -->|sim| I[Evolution API<br/>alerta WhatsApp por empresa]
+    F --> K[HubSpot<br/>upsert contato, todos os tiers]
+    K --> R[Resposta síncrona<br/>lista de empresas encontradas]
+    R --> A
     G -->|GET /webhook/leads-kanban| L[Kanban estático<br/>GitHub Pages]
 ```
 
@@ -50,7 +58,8 @@ flowchart TD
 |---|---|
 | Front-end | HTML/CSS/JS estático, hospedado no GitHub Pages |
 | Automação/orquestração | [n8n](https://n8n.io) (self-hosted, Easypanel) |
-| Enriquecimento de dados | [BrasilAPI](https://brasilapi.com.br) (fallback OpenCNPJ) |
+| Busca/prospecção | [Minha Receita](https://minhareceita.org) (gratuita, open-source, dados abertos da Receita Federal) |
+| Enriquecimento de fallback | [BrasilAPI](https://brasilapi.com.br) (fallback OpenCNPJ) |
 | Persistência | Google Sheets |
 | Qualificação | OpenAI (`gpt-4o-mini`) |
 | Alertas | Evolution API (WhatsApp) |
