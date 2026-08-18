@@ -544,14 +544,20 @@
       populateSelect(fSituacao, uniqueSorted(allLeads.map(l => l.situacao_cadastral)), 'Todas');
       populateSelect(fPorte, uniqueSorted(allLeads.map(l => l.porte)), 'Todos');
       populateSelect(fFonte, uniqueSorted(allLeads.map(l => l.fonte_enriquecimento)), 'Todas');
-      populateSelect(fBairro, uniqueSorted(allLeads.map(l => l.bairro)), 'Todos');
       populateSelect(fMunicipio, uniqueSorted(allLeads.map(l => l.municipio)), 'Todos');
+      updateBairroOptions();
 
       const tierValues = uniqueSorted(allLeads.map(l => l.tier));
       const current = fTier.value;
       fTier.innerHTML = '<option value="">Todos</option>' +
         tierValues.map(t => `<option value="${escapeHtml(t)}">${escapeHtml((TIER_INFO[t] || {}).label || t)}</option>`).join('');
       if (tierValues.includes(current)) fTier.value = current;
+    }
+
+    // Bairro depende do Município selecionado: só mostra bairros que existem nesse município.
+    function updateBairroOptions() {
+      const base = fMunicipio.value ? allLeads.filter(l => l.municipio === fMunicipio.value) : allLeads;
+      populateSelect(fBairro, uniqueSorted(base.map(l => l.bairro)), 'Todos');
     }
 
     function buildHead() {
@@ -669,14 +675,20 @@
       }
     }
 
-    [fBusca, fSegmento, fUf, fTier, fSituacao, fPorte, fFonte, fBairro, fMunicipio].forEach(el => {
+    [fBusca, fSegmento, fUf, fTier, fSituacao, fPorte, fFonte, fBairro].forEach(el => {
       el.addEventListener('input', renderTable);
       el.addEventListener('change', renderTable);
+    });
+
+    fMunicipio.addEventListener('change', () => {
+      updateBairroOptions();
+      renderTable();
     });
 
     clearFiltersBtn.addEventListener('click', () => {
       fBusca.value = '';
       [fSegmento, fUf, fTier, fSituacao, fPorte, fFonte, fBairro, fMunicipio].forEach(el => el.value = '');
+      updateBairroOptions();
       renderTable();
     });
 
