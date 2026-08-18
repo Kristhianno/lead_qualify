@@ -414,6 +414,10 @@
           <label for="fFonte">Fonte</label>
           <select id="fFonte"><option value="">Todas</option></select>
         </div>
+        <div>
+          <label for="fBairro">Bairro</label>
+          <select id="fBairro"><option value="">Todos</option></select>
+        </div>
       </div>
       <div class="filters-footer">
         <span class="result-count" id="resultCount"></span>
@@ -452,6 +456,7 @@
     const fSituacao = document.getElementById('fSituacao');
     const fPorte = document.getElementById('fPorte');
     const fFonte = document.getElementById('fFonte');
+    const fBairro = document.getElementById('fBairro');
 
     const TIER_INFO = {
       quente: { label: '🔥 Quente', cls: 'tier-quente' },
@@ -531,6 +536,7 @@
       populateSelect(fSituacao, uniqueSorted(allLeads.map(l => l.situacao_cadastral)), 'Todas');
       populateSelect(fPorte, uniqueSorted(allLeads.map(l => l.porte)), 'Todos');
       populateSelect(fFonte, uniqueSorted(allLeads.map(l => l.fonte_enriquecimento)), 'Todas');
+      populateSelect(fBairro, uniqueSorted(allLeads.map(l => l.bairro)), 'Todos');
 
       const tierValues = uniqueSorted(allLeads.map(l => l.tier));
       const current = fTier.value;
@@ -565,6 +571,7 @@
         if (fSituacao.value && l.situacao_cadastral !== fSituacao.value) return false;
         if (fPorte.value && l.porte !== fPorte.value) return false;
         if (fFonte.value && l.fonte_enriquecimento !== fFonte.value) return false;
+        if (fBairro.value && l.bairro !== fBairro.value) return false;
         if (busca) {
           const haystack = normalizar(`${l.razao_social || ''} ${l.cnpj || ''} ${l.cidade || ''} ${l.municipio || ''}`);
           if (!haystack.includes(busca)) return false;
@@ -652,14 +659,14 @@
       }
     }
 
-    [fBusca, fSegmento, fUf, fTier, fSituacao, fPorte, fFonte].forEach(el => {
+    [fBusca, fSegmento, fUf, fTier, fSituacao, fPorte, fFonte, fBairro].forEach(el => {
       el.addEventListener('input', renderTable);
       el.addEventListener('change', renderTable);
     });
 
     clearFiltersBtn.addEventListener('click', () => {
       fBusca.value = '';
-      [fSegmento, fUf, fTier, fSituacao, fPorte, fFonte].forEach(el => el.value = '');
+      [fSegmento, fUf, fTier, fSituacao, fPorte, fFonte, fBairro].forEach(el => el.value = '');
       renderTable();
     });
 
