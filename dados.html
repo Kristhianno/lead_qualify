@@ -500,8 +500,12 @@
       { key: 'pais', label: 'País' },
       { key: 'codigo_porte', label: 'Cód. Porte' },
       { key: 'cnae_fiscal_descricao', label: 'CNAE Fiscal (Descrição)', wrap: true },
-      { key: 'cnaes_secundarios', label: 'CNAEs Secundários', wrap: true },
+      { key: 'cnaes_secundarios', label: 'CNAEs Secundários', wrap: true, hideInTable: true },
     ];
+
+    // Colunas exibidas na tabela em tela (exclui as marcadas com hideInTable).
+    // O export para Excel continua usando COLUMNS completo, com todos os dados.
+    const TABLE_COLUMNS = COLUMNS.filter(c => !c.hideInTable);
 
     let allLeads = [];
 
@@ -552,7 +556,7 @@
     }
 
     function buildHead() {
-      tableHeadRow.innerHTML = COLUMNS.map(c => `<th>${escapeHtml(c.label)}</th>`).join('');
+      tableHeadRow.innerHTML = TABLE_COLUMNS.map(c => `<th>${escapeHtml(c.label)}</th>`).join('');
     }
 
     function cellValue(lead, col) {
@@ -594,12 +598,12 @@
       exportBtn.disabled = filtered.length === 0;
 
       if (filtered.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="${COLUMNS.length}"><div class="empty-state">Nenhum lead encontrado com esses filtros.</div></td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="${TABLE_COLUMNS.length}"><div class="empty-state">Nenhum lead encontrado com esses filtros.</div></td></tr>`;
         return;
       }
 
       tableBody.innerHTML = filtered.map(lead => {
-        const cells = COLUMNS.map(c => `<td class="${c.wrap ? 'wrap' : ''}">${cellValue(lead, c)}</td>`).join('');
+        const cells = TABLE_COLUMNS.map(c => `<td class="${c.wrap ? 'wrap' : ''}">${cellValue(lead, c)}</td>`).join('');
         return `<tr>${cells}</tr>`;
       }).join('');
     }
