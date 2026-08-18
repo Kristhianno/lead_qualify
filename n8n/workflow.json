@@ -276,40 +276,8 @@
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Qhoi8hoJHXWTEBgHrulFQz2-CocUhbUNBRrWHJgH2A8/edit#gid=0"
         },
         "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "timestamp": "={{ $json.timestamp }}",
-            "cnpj": "={{ (() => { const c = ($json.cnpj || '').toString().replace(/\\D/g, ''); return c.length === 14 ? c.slice(0,2)+'.'+c.slice(2,5)+'.'+c.slice(5,8)+'/'+c.slice(8,12)+'-'+c.slice(12,14) : ($json.cnpj || ''); })() }}",
-            "razao_social": "={{ $json.razao_social || '' }}",
-            "porte": "={{ $json.porte || '' }}",
-            "situacao_cadastral": "={{ $json.situacao_cadastral || '' }}",
-            "capital_social": "={{ 'R$ ' + Number($json.capital_social || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}",
-            "tier": "={{ $json.tier || '' }}",
-            "telefone_sdr": "={{ (() => { let raw = (($json.telefone_sdr) || '').toString().replace(/\\D/g, ''); if ((raw.length === 12 || raw.length === 13) && raw.startsWith('55')) raw = raw.slice(2); if (raw.length < 10) return raw; const ddd = raw.slice(0,2); const rest = raw.slice(2); const mid = rest.length === 9 ? rest.slice(0,5) : rest.slice(0,4); const end = rest.length === 9 ? rest.slice(5) : rest.slice(4); return '(' + ddd + ') ' + mid + '-' + end; })() }}",
-            "cnae_descricao": "={{ $json.cnae_descricao || '' }}",
-            "fonte_enriquecimento": "={{ $json.fonte_enriquecimento || '' }}",
-            "uf": "={{ $json.uf || '' }}",
-            "cep": "={{ (() => { const c = ($json.cep || '').toString().replace(/\\D/g, ''); return c.length === 8 ? c.slice(0,5) + '-' + c.slice(5) : ($json.cep || ''); })() }}",
-            "pais": "={{ $json.pais || '' }}",
-            "bairro": "={{ $json.bairro || '' }}",
-            "numero": "={{ ($json.numero || '').toString() }}",
-            "municipio": "={{ $json.municipio || '' }}",
-            "logradouro": "={{ $json.logradouro || '' }}",
-            "cnae_fiscal": "={{ (() => { const c = ($json.cnae_fiscal || '').toString().replace(/\\D/g, ''); return c.length === 7 ? c.slice(0,4) + '-' + c.slice(4,5) + '/' + c.slice(5) : ($json.cnae_fiscal || ''); })() }}",
-            "complemento": "={{ $json.complemento || '' }}",
-            "codigo_porte": "={{ ($json.codigo_porte ?? '').toString() }}",
-            "nome_fantasia": "={{ $json.nome_fantasia || '' }}",
-            "ddd_telefone_1": "={{ (() => { let raw = (($json.ddd_telefone_1) || '').toString().replace(/\\D/g, ''); if ((raw.length === 12 || raw.length === 13) && raw.startsWith('55')) raw = raw.slice(2); if (raw.length < 10) return raw; const ddd = raw.slice(0,2); const rest = raw.slice(2); const mid = rest.length === 9 ? rest.slice(0,5) : rest.slice(0,4); const end = rest.length === 9 ? rest.slice(5) : rest.slice(4); return '(' + ddd + ') ' + mid + '-' + end; })() }}",
-            "ddd_telefone_2": "={{ (() => { let raw = (($json.ddd_telefone_2) || '').toString().replace(/\\D/g, ''); if ((raw.length === 12 || raw.length === 13) && raw.startsWith('55')) raw = raw.slice(2); if (raw.length < 10) return raw; const ddd = raw.slice(0,2); const rest = raw.slice(2); const mid = rest.length === 9 ? rest.slice(0,5) : rest.slice(0,4); const end = rest.length === 9 ? rest.slice(5) : rest.slice(4); return '(' + ddd + ') ' + mid + '-' + end; })() }}",
-            "opcao_pelo_mei": "={{ $json.opcao_pelo_mei ? 'Sim' : 'Não' }}",
-            "cnaes_secundarios": "={{ (() => { const arr = $json.cnaes_secundarios; if (!Array.isArray(arr) || arr.length === 0) return ''; return arr.map(c => (c.codigo || '') + ' - ' + (c.descricao || '')).join('; '); })() }}",
-            "natureza_juridica": "={{ $json.natureza_juridica || '' }}",
-            "cnae_fiscal_descricao": "={{ $json.cnae_fiscal_descricao || '' }}",
-            "descricao_identificador_matriz_filial": "={{ $json.descricao_identificador_matriz_filial || '' }}",
-            "segmento": "={{ $json.segmento || '' }}",
-            "cidade": "={{ $json.cidade || '' }}",
-            "socios": "={{ $json.socios || '' }}"
-          },
+          "mappingMode": "autoMapInputData",
+          "value": {},
           "matchingColumns": [],
           "schema": [
             {
@@ -851,11 +819,12 @@
           "id": "mw0T5OyoQJ8tCkDM",
           "name": "Google Sheets account"
         }
-      }
+      },
+      "alwaysOutputData": true
     },
     {
       "parameters": {
-        "jsCode": "const leads = items.map(i => i.json);\nreturn [{ json: { leads } }];"
+        "jsCode": "const leads = items.map(i => i.json).filter(j => j && j.cnpj);\nreturn [{ json: { leads } }];"
       },
       "id": "a0a2cbe8-d3b0-4488-81a6-24c4baf0c549",
       "name": "Agrupar Leads em Array",
@@ -1261,7 +1230,8 @@
           "id": "mw0T5OyoQJ8tCkDM",
           "name": "Google Sheets account"
         }
-      }
+      },
+      "alwaysOutputData": true
     },
     {
       "parameters": {
@@ -1275,6 +1245,20 @@
       "position": [
         2400,
         3050
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const item = $json;\n\nfunction soDigitos(v) { return (v || '').toString().replace(/\\D/g, ''); }\n\nfunction formatarTelefone(raw) {\n  let r = soDigitos(raw);\n  if ((r.length === 12 || r.length === 13) && r.startsWith('55')) r = r.slice(2);\n  if (r.length < 10) return r;\n  const ddd = r.slice(0, 2);\n  const rest = r.slice(2);\n  const mid = rest.length === 9 ? rest.slice(0, 5) : rest.slice(0, 4);\n  const end = rest.length === 9 ? rest.slice(5) : rest.slice(4);\n  return `(${ddd}) ${mid}-${end}`;\n}\n\nfunction formatarCnpj(raw) {\n  const c = soDigitos(raw);\n  return c.length === 14 ? `${c.slice(0,2)}.${c.slice(2,5)}.${c.slice(5,8)}/${c.slice(8,12)}-${c.slice(12,14)}` : (raw || '');\n}\n\nfunction formatarCep(raw) {\n  const c = soDigitos(raw);\n  return c.length === 8 ? `${c.slice(0,5)}-${c.slice(5)}` : (raw || '');\n}\n\nfunction formatarCnaeFiscal(raw) {\n  const c = soDigitos(raw);\n  return c.length === 7 ? `${c.slice(0,4)}-${c.slice(4,5)}/${c.slice(5)}` : (raw || '');\n}\n\nfunction formatarCnaesSecundarios(arr) {\n  if (!Array.isArray(arr) || arr.length === 0) return '';\n  return arr.map(c => `${c.codigo || ''} - ${c.descricao || ''}`).join('; ');\n}\n\nreturn { json: {\n  timestamp: item.timestamp,\n  cnpj: formatarCnpj(item.cnpj),\n  razao_social: item.razao_social || '',\n  porte: item.porte || '',\n  situacao_cadastral: item.situacao_cadastral || '',\n  capital_social: 'R$ ' + Number(item.capital_social || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),\n  tier: item.tier || '',\n  telefone_sdr: formatarTelefone(item.telefone_sdr),\n  cnae_descricao: item.cnae_descricao || '',\n  fonte_enriquecimento: item.fonte_enriquecimento || '',\n  uf: item.uf || '',\n  cep: formatarCep(item.cep),\n  pais: item.pais || '',\n  bairro: item.bairro || '',\n  numero: (item.numero || '').toString(),\n  municipio: item.municipio || '',\n  logradouro: item.logradouro || '',\n  cnae_fiscal: formatarCnaeFiscal(item.cnae_fiscal),\n  complemento: item.complemento || '',\n  codigo_porte: (item.codigo_porte ?? '').toString(),\n  nome_fantasia: item.nome_fantasia || '',\n  ddd_telefone_1: formatarTelefone(item.ddd_telefone_1),\n  ddd_telefone_2: formatarTelefone(item.ddd_telefone_2),\n  opcao_pelo_mei: item.opcao_pelo_mei ? 'Sim' : 'Não',\n  cnaes_secundarios: formatarCnaesSecundarios(item.cnaes_secundarios),\n  natureza_juridica: item.natureza_juridica || '',\n  cnae_fiscal_descricao: item.cnae_fiscal_descricao || '',\n  descricao_identificador_matriz_filial: item.descricao_identificador_matriz_filial || '',\n  segmento: item.segmento || '',\n  cidade: item.cidade || '',\n  socios: item.socios || '',\n} };\n"
+      },
+      "id": "684b2c1e-e411-41f7-bb20-0bb9ccbe79f7",
+      "name": "Preparar Linha da Planilha",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4842,
+        2796
       ]
     }
   ],
@@ -1491,7 +1475,7 @@
       "main": [
         [
           {
-            "node": "Salvar Lead na Planilha",
+            "node": "Preparar Linha da Planilha",
             "type": "main",
             "index": 0
           }
@@ -1714,6 +1698,17 @@
         [
           {
             "node": "Mapear Segmento para CNAE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Linha da Planilha": {
+      "main": [
+        [
+          {
+            "node": "Salvar Lead na Planilha",
             "type": "main",
             "index": 0
           }
