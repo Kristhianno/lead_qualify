@@ -532,9 +532,9 @@
       </div>
 
       <div class="field">
-        <label for="cidade">Cidade</label>
-        <input type="text" id="cidade" name="cidade" required autocomplete="address-level2"
-          placeholder="Ex: São Paulo">
+        <label for="cidade">Cidade (opcional)</label>
+        <input type="text" id="cidade" name="cidade" autocomplete="address-level2"
+          placeholder="Ex: São Paulo — deixe em branco para buscar em todo o estado">
         <span class="field-error" id="err-cidade"></span>
       </div>
 
@@ -569,6 +569,7 @@
     </div>
 
     <a href="kanban.html" class="btn-secondary">Ver leads no Kanban</a>
+    <a href="dados.html" class="btn-secondary" style="margin-top:10px;">Ver tabela completa</a>
   </div>
 
   <script>
@@ -649,11 +650,6 @@
         valid = false;
       }
 
-      if (!cidadeInput.value.trim()) {
-        setFieldError('cidade', 'Informe a cidade.');
-        valid = false;
-      }
-
       return valid;
     }
 
@@ -695,15 +691,16 @@
       const companies = Array.isArray(data.companies) ? data.companies : [];
       const cidade = data.cidade || cidadeInput.value.trim();
       const estado = data.estado || estadoSelect.value;
+      const local = cidade ? `${cidade}/${estado}` : `todo o estado de ${estado}`;
 
       if (companies.length === 0) {
-        formInfo.textContent = `Nenhuma empresa ativa encontrada em ${cidade}/${estado} para esse segmento.`;
+        formInfo.textContent = `Nenhuma empresa ativa encontrada em ${local} para esse segmento.`;
         formInfo.classList.add('show');
         resultsPanel.classList.remove('show');
         return;
       }
 
-      resultsSummary.textContent = `${companies.length} empresa(s) ativa(s) encontrada(s) em ${cidade}/${estado}.`;
+      resultsSummary.textContent = `${companies.length} empresa(s) ativa(s) encontrada(s) em ${local}.`;
       resultsList.innerHTML = companies.map(buildResultCard).join('');
       resultsPanel.classList.add('show');
     }

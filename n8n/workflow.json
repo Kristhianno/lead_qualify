@@ -34,13 +34,13 @@
         },
         "options": {}
       },
-      "id": "f1a2b3c4-0001-4000-8000-000000000001",
+      "id": "4c5e775a-305a-4d30-bb96-1fde114d94d6",
       "name": "IF - Segurança",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        480,
-        660
+        2096,
+        2736
       ]
     },
     {
@@ -58,28 +58,35 @@
           }
         }
       },
-      "id": "f1a2b3c4-0001-4000-8000-000000000002",
+      "id": "b4f26cb7-3f05-4cef-872e-8e4ce6b70032",
       "name": "Respond - Bloqueado",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        592,
-        480
+        2336,
+        2576
       ]
     },
     {
       "parameters": {
         "url": "=https://brasilapi.com.br/api/cnpj/v1/{{ $json.cnpj }}",
         "authentication": "genericCredentialType",
-        "options": {}
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 8,
+              "batchInterval": 300
+            }
+          }
+        }
       },
-      "id": "352fd906-84a7-4818-9142-041669b3ba58",
+      "id": "0deb3f67-262e-473b-b2f7-c2a0894f00bf",
       "name": "Enriquecer BrasilAPI",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1792,
-        928
+        3408,
+        2992
       ],
       "onError": "continueRegularOutput"
     },
@@ -107,13 +114,13 @@
         },
         "options": {}
       },
-      "id": "ea0a6d93-f3fb-4e32-9429-3861d78b4523",
+      "id": "2e952db0-1514-4e74-bf23-a5de79190858",
       "name": "IF BrasilAPI OK",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        2000,
-        928
+        3616,
+        2992
       ]
     },
     {
@@ -121,27 +128,34 @@
         "mode": "runOnceForEachItem",
         "jsCode": "const original = $('Filtrar Cidade e Situacao Ativa').item.json;\nconst api = $json;\n\nreturn { json: {\n  ...original,\n  razao_social: api.razao_social || api.nome_fantasia || '',\n  cnae_descricao: api.cnae_fiscal_descricao || '',\n  porte: api.porte || '',\n  situacao_cadastral: api.descricao_situacao_cadastral || '',\n  capital_social: Number(api.capital_social) || 0,\n  socios: Array.isArray(api.qsa) ? api.qsa.map(s => s.nome_socio).filter(Boolean).join('; ') : (original.socios || ''),\n  fonte_enriquecimento: 'BrasilAPI'\n} };"
       },
-      "id": "7814ed0c-5a62-4083-89dc-af279eba7f8b",
+      "id": "af47dd1c-cf62-4760-a823-82e935ede534",
       "name": "Formatar Dados BrasilAPI",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2208,
-        832
+        3824,
+        2896
       ]
     },
     {
       "parameters": {
         "url": "=https://api.opencnpj.org/{{ $json.cnpj }}",
-        "options": {}
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 8,
+              "batchInterval": 300
+            }
+          }
+        }
       },
-      "id": "9a073a20-5ce2-4646-b434-0280fd956c1f",
+      "id": "6eb06743-bd3d-4bdc-9c6f-b673e4ebb81a",
       "name": "Enriquecer OpenCNPJ",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2208,
-        1024
+        3824,
+        3088
       ],
       "onError": "continueRegularOutput"
     },
@@ -150,13 +164,13 @@
         "mode": "runOnceForEachItem",
         "jsCode": "const original = $('Filtrar Cidade e Situacao Ativa').item.json;\nconst api = $json;\nconst capitalSocialNum = Number((api.capital_social || '0').toString().replace(/\\./g, '').replace(',', '.')) || 0;\n\nreturn { json: {\n  ...original,\n  razao_social: api.razao_social || api.nome_fantasia || '',\n  cnae_descricao: api.cnae_principal || '',\n  porte: api.porte_empresa || '',\n  situacao_cadastral: api.situacao_cadastral || '',\n  capital_social: capitalSocialNum,\n  socios: original.socios || '',\n  fonte_enriquecimento: 'OpenCNPJ'\n} };"
       },
-      "id": "a8d47298-1d61-4400-a08d-5b51d93d48b8",
+      "id": "dd02039c-f5d9-4571-9133-c5fc8bdf3638",
       "name": "Formatar Dados OpenCNPJ",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2416,
-        1024
+        4032,
+        3088
       ]
     },
     {
@@ -164,13 +178,13 @@
         "mode": "runOnceForEachItem",
         "jsCode": "const item = $json;\n\n// --- Constantes ajustáveis — recalibrar depois de ver dados reais do segmento buscado ---\nconst CAPITAL_SOCIAL_QUENTE = 100000;\nconst CAPITAL_SOCIAL_ATENCAO = 20000;\n\nfunction normalizarPorte(raw) {\n  const v = (raw ?? '').toString().trim().toUpperCase();\n  if (['01', '1', 'MICRO EMPRESA', 'ME'].includes(v)) return 'ME';\n  if (['03', '3', 'EMPRESA DE PEQUENO PORTE', 'EPP'].includes(v)) return 'EPP';\n  if (['05', '5', 'DEMAIS', 'DEMAIS EMPRESAS'].includes(v)) return 'DEMAIS';\n  return 'DESCONHECIDO';\n}\n\nconst porte = normalizarPorte(item.porte);\nconst capitalSocial = Number(item.capital_social) || 0;\n\nlet tier = 'desqualificado';\nif (porte === 'DEMAIS' && capitalSocial >= CAPITAL_SOCIAL_QUENTE) tier = 'quente';\nelse if (porte === 'DEMAIS' || (porte === 'EPP' && capitalSocial >= CAPITAL_SOCIAL_ATENCAO)) tier = 'atencao';\n\n// Valores INTERNOS da propriedade lifecyclestage (Lifecycle Stage), que é a\n// propriedade usada pelo Board de Contatos nesta conta do HubSpot — NÃO é\n// hs_lead_status (confirmado via GET /crm/v3/properties/contacts/lifecyclestage).\n// 'lead' e 'opportunity' são valores padrão do HubSpot; '1398914058' é o valor\n// interno auto-gerado quando a opção customizada \"Nutrir\" foi criada nesta\n// conta — não é literalmente a string 'nutrir'. Se recriar a opção em outra\n// conta, confira o valor de novo em Configurações > Propriedades > Lifecycle Stage.\nconst HUBSPOT_LIFECYCLE_STAGE = {\n  quente: 'lead',\n  atencao: 'opportunity',\n  desqualificado: '1398914058'\n};\n\nreturn { json: {\n  ...item,\n  porte,\n  tier,\n  lifecyclestage: HUBSPOT_LIFECYCLE_STAGE[tier],\n  timestamp: new Date().toISOString()\n} };"
       },
-      "id": "9f0aab5e-fc14-4f91-b3e2-fc8b02ea6910",
+      "id": "2f5f69aa-2374-42eb-8073-b006a4f8b403",
       "name": "Calcula e Classifica tier",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2600,
-        832
+        4224,
+        2896
       ]
     },
     {
@@ -178,13 +192,13 @@
         "mode": "runOnceForEachItem",
         "jsCode": "const item = $json;\n\nconst systemPrompt = 'Você é um SDR da ALPHADATA, uma plataforma de inteligência de mercado B2B. Dado os dados de uma empresa encontrada numa busca de prospecção por segmento/estado/cidade, responda SOMENTE em JSON válido com duas chaves: resumo_ia (resumo de 1 a 2 frases sobre a empresa e a oportunidade) e abordagem_sugerida (1 frase com o melhor ângulo de abordagem comercial). Não inclua nenhum texto fora do JSON.';\n\nconst userPrompt = [\n  `Empresa: ${item.razao_social}`,\n  `CNAE: ${item.cnae_descricao}`,\n  `Situação cadastral: ${item.situacao_cadastral}`,\n  `Porte: ${item.porte}`,\n  `Capital social: R$ ${item.capital_social}`,\n  `Localização: ${item.municipio}/${item.uf}`,\n  `Tier calculado: ${item.tier}`\n].join('\\n');\n\nreturn { json: {\n  ...item,\n  openai_request_body: JSON.stringify({\n    model: 'gpt-4o-mini',\n    response_format: { type: 'json_object' },\n    messages: [\n      { role: 'system', content: systemPrompt },\n      { role: 'user', content: userPrompt }\n    ]\n  })\n} };"
       },
-      "id": "f1a2b3c4-0001-4000-8000-000000000003",
+      "id": "f007f861-5918-4664-8471-cd3ab4d36c6f",
       "name": "Montar Prompt IA",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2792,
-        832
+        4416,
+        2896
       ]
     },
     {
@@ -205,16 +219,29 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ $json.openai_request_body }}",
-        "options": {}
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 8,
+              "batchInterval": 300
+            }
+          }
+        }
       },
-      "id": "f1a2b3c4-0001-4000-8000-000000000004",
+      "id": "9eac43b7-90df-4f94-907e-5df501f85a5c",
       "name": "OpenAI - Qualificação",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2984,
-        832
+        4608,
+        2896
       ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "So6JthoQz2lzRX0w",
+          "name": "Openai Auth account"
+        }
+      },
       "onError": "continueRegularOutput"
     },
     {
@@ -222,13 +249,13 @@
         "mode": "runOnceForEachItem",
         "jsCode": "const original = $('Montar Prompt IA').item.json;\nlet resumo_ia = '';\nlet abordagem_sugerida = '';\n\ntry {\n  const content = $json?.choices?.[0]?.message?.content || '{}';\n  const result = JSON.parse(content);\n  resumo_ia = result.resumo_ia || '';\n  abordagem_sugerida = result.abordagem_sugerida || '';\n} catch (e) {\n  // mantém strings vazias se a IA falhar ou responder fora do formato esperado\n}\n\nconst { openai_request_body, ...rest } = original;\n\nreturn { json: {\n  ...rest,\n  resumo_ia,\n  abordagem_sugerida\n} };"
       },
-      "id": "f1a2b3c4-0001-4000-8000-000000000005",
+      "id": "00ad346f-126c-49c4-bc5d-6a61cd879bbf",
       "name": "Parse Resposta IA",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3176,
-        832
+        4800,
+        2896
       ]
     },
     {
@@ -249,40 +276,45 @@
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Qhoi8hoJHXWTEBgHrulFQz2-CocUhbUNBRrWHJgH2A8/edit#gid=0"
         },
         "columns": {
-          "mappingMode": "autoMapInputData",
-          "value": {},
+          "mappingMode": "defineBelow",
+          "value": {
+            "timestamp": "={{ $json.timestamp }}",
+            "cnpj": "={{ (() => { const c = ($json.cnpj || '').toString().replace(/\\D/g, ''); return c.length === 14 ? c.slice(0,2)+'.'+c.slice(2,5)+'.'+c.slice(5,8)+'/'+c.slice(8,12)+'-'+c.slice(12,14) : ($json.cnpj || ''); })() }}",
+            "razao_social": "={{ $json.razao_social || '' }}",
+            "porte": "={{ $json.porte || '' }}",
+            "situacao_cadastral": "={{ $json.situacao_cadastral || '' }}",
+            "capital_social": "={{ 'R$ ' + Number($json.capital_social || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}",
+            "tier": "={{ $json.tier || '' }}",
+            "telefone_sdr": "={{ (() => { let raw = (($json.telefone_sdr) || '').toString().replace(/\\D/g, ''); if ((raw.length === 12 || raw.length === 13) && raw.startsWith('55')) raw = raw.slice(2); if (raw.length < 10) return raw; const ddd = raw.slice(0,2); const rest = raw.slice(2); const mid = rest.length === 9 ? rest.slice(0,5) : rest.slice(0,4); const end = rest.length === 9 ? rest.slice(5) : rest.slice(4); return '(' + ddd + ') ' + mid + '-' + end; })() }}",
+            "cnae_descricao": "={{ $json.cnae_descricao || '' }}",
+            "fonte_enriquecimento": "={{ $json.fonte_enriquecimento || '' }}",
+            "uf": "={{ $json.uf || '' }}",
+            "cep": "={{ (() => { const c = ($json.cep || '').toString().replace(/\\D/g, ''); return c.length === 8 ? c.slice(0,5) + '-' + c.slice(5) : ($json.cep || ''); })() }}",
+            "pais": "={{ $json.pais || '' }}",
+            "bairro": "={{ $json.bairro || '' }}",
+            "numero": "={{ ($json.numero || '').toString() }}",
+            "municipio": "={{ $json.municipio || '' }}",
+            "logradouro": "={{ $json.logradouro || '' }}",
+            "cnae_fiscal": "={{ (() => { const c = ($json.cnae_fiscal || '').toString().replace(/\\D/g, ''); return c.length === 7 ? c.slice(0,4) + '-' + c.slice(4,5) + '/' + c.slice(5) : ($json.cnae_fiscal || ''); })() }}",
+            "complemento": "={{ $json.complemento || '' }}",
+            "codigo_porte": "={{ ($json.codigo_porte ?? '').toString() }}",
+            "nome_fantasia": "={{ $json.nome_fantasia || '' }}",
+            "ddd_telefone_1": "={{ (() => { let raw = (($json.ddd_telefone_1) || '').toString().replace(/\\D/g, ''); if ((raw.length === 12 || raw.length === 13) && raw.startsWith('55')) raw = raw.slice(2); if (raw.length < 10) return raw; const ddd = raw.slice(0,2); const rest = raw.slice(2); const mid = rest.length === 9 ? rest.slice(0,5) : rest.slice(0,4); const end = rest.length === 9 ? rest.slice(5) : rest.slice(4); return '(' + ddd + ') ' + mid + '-' + end; })() }}",
+            "ddd_telefone_2": "={{ (() => { let raw = (($json.ddd_telefone_2) || '').toString().replace(/\\D/g, ''); if ((raw.length === 12 || raw.length === 13) && raw.startsWith('55')) raw = raw.slice(2); if (raw.length < 10) return raw; const ddd = raw.slice(0,2); const rest = raw.slice(2); const mid = rest.length === 9 ? rest.slice(0,5) : rest.slice(0,4); const end = rest.length === 9 ? rest.slice(5) : rest.slice(4); return '(' + ddd + ') ' + mid + '-' + end; })() }}",
+            "opcao_pelo_mei": "={{ $json.opcao_pelo_mei ? 'Sim' : 'Não' }}",
+            "cnaes_secundarios": "={{ (() => { const arr = $json.cnaes_secundarios; if (!Array.isArray(arr) || arr.length === 0) return ''; return arr.map(c => (c.codigo || '') + ' - ' + (c.descricao || '')).join('; '); })() }}",
+            "natureza_juridica": "={{ $json.natureza_juridica || '' }}",
+            "cnae_fiscal_descricao": "={{ $json.cnae_fiscal_descricao || '' }}",
+            "descricao_identificador_matriz_filial": "={{ $json.descricao_identificador_matriz_filial || '' }}",
+            "segmento": "={{ $json.segmento || '' }}",
+            "cidade": "={{ $json.cidade || '' }}",
+            "socios": "={{ $json.socios || '' }}"
+          },
           "matchingColumns": [],
           "schema": [
             {
               "id": "timestamp",
               "displayName": "timestamp",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "nome",
-              "displayName": "nome",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "email",
-              "displayName": "email",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "empresa",
-              "displayName": "empresa",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -299,26 +331,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "telefone_lead",
-              "displayName": "telefone_lead",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
               "id": "razao_social",
               "displayName": "razao_social",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "cnae_descricao",
-              "displayName": "cnae_descricao",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -353,8 +367,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "ticket_medio_mensal",
-              "displayName": "ticket_medio_mensal",
+              "id": "tier",
+              "displayName": "tier",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -362,8 +376,17 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "tier",
-              "displayName": "tier",
+              "id": "telefone_sdr",
+              "displayName": "telefone_sdr",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "cnae_descricao",
+              "displayName": "cnae_descricao",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -380,8 +403,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "resumo_ia",
-              "displayName": "resumo_ia",
+              "id": "uf",
+              "displayName": "uf",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -389,8 +412,152 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "abordagem_sugerida",
-              "displayName": "abordagem_sugerida",
+              "id": "cep",
+              "displayName": "cep",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "pais",
+              "displayName": "pais",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "bairro",
+              "displayName": "bairro",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "numero",
+              "displayName": "numero",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "municipio",
+              "displayName": "municipio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "logradouro",
+              "displayName": "logradouro",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "cnae_fiscal",
+              "displayName": "cnae_fiscal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "complemento",
+              "displayName": "complemento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "codigo_porte",
+              "displayName": "codigo_porte",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "nome_fantasia",
+              "displayName": "nome_fantasia",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ddd_telefone_1",
+              "displayName": "ddd_telefone_1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ddd_telefone_2",
+              "displayName": "ddd_telefone_2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "opcao_pelo_mei",
+              "displayName": "opcao_pelo_mei",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "cnaes_secundarios",
+              "displayName": "cnaes_secundarios",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "natureza_juridica",
+              "displayName": "natureza_juridica",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "cnae_fiscal_descricao",
+              "displayName": "cnae_fiscal_descricao",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "descricao_identificador_matriz_filial",
+              "displayName": "descricao_identificador_matriz_filial",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -416,15 +583,6 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "uf",
-              "displayName": "uf",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
               "id": "socios",
               "displayName": "socios",
               "required": false,
@@ -439,13 +597,13 @@
         },
         "options": {}
       },
-      "id": "a4c81664-1170-4d45-9639-12dfca909b0f",
+      "id": "4eca6896-c59c-4a37-93cf-8ccb72499e1f",
       "name": "Salvar Lead na Planilha",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
-        3368,
-        832
+        4992,
+        2896
       ],
       "credentials": {
         "googleSheetsOAuth2Api": {
@@ -478,13 +636,13 @@
         },
         "options": {}
       },
-      "id": "7d590772-2d55-41bc-bddf-9239d2270c2c",
+      "id": "4b7b1f24-cb86-4638-a404-239d2412e021",
       "name": "IF Tier = Quente",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        3560,
-        832
+        5184,
+        2896
       ]
     },
     {
@@ -492,13 +650,13 @@
         "mode": "runOnceForEachItem",
         "jsCode": "const item = $json;\nconst resumo = `🔥 EMPRESA QUENTE — vale abordar!\\n\\nEmpresa: ${item.razao_social}\\nCNPJ: ${item.cnpj}\\nSegmento (CNAE): ${item.cnae_descricao}\\nSituação cadastral: ${item.situacao_cadastral}\\nPorte: ${item.porte} | Capital social: R$ ${item.capital_social}\\nLocalização: ${item.municipio}/${item.uf}\\n\\n📊 Análise da IA: ${item.resumo_ia || 'não disponível'}\\n💡 Abordagem sugerida: ${item.abordagem_sugerida || 'não disponível'}\\n\\nContato: ${item.email || 'email não informado'} | ${item.ddd_telefone_1 || 'telefone não informado'}\\nSócios: ${item.socios || 'não informado'}\\nFonte do enriquecimento: ${item.fonte_enriquecimento}`;\n\nreturn { json: { ...item, resumo } };"
       },
-      "id": "73ea37d9-9deb-4f36-9a82-693ef448baa6",
+      "id": "3c13bab6-e491-4fdc-b39e-61dc94aa579a",
       "name": "Montar Resumo (Quente)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3768,
-        688
+        5392,
+        2752
       ]
     },
     {
@@ -509,13 +667,13 @@
         "messageText": "={{ $json.resumo }}",
         "options_message": {}
       },
-      "id": "a541361a-9d2b-4bf4-bba6-c73411a2bb79",
+      "id": "fed51f0c-8017-4f33-a1eb-bf6845227c95",
       "name": "Enviar Resumo SDR (Quente)",
       "type": "n8n-nodes-evolution-api.evolutionApi",
       "typeVersion": 1,
       "position": [
-        3960,
-        688
+        5584,
+        2752
       ],
       "credentials": {
         "evolutionApi": {
@@ -548,13 +706,13 @@
         },
         "options": {}
       },
-      "id": "007b1628-cfc8-43ff-935c-922503409a53",
+      "id": "1e6227e5-103f-4360-9391-b94aefade491",
       "name": "IF Tier = Atenção",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        3768,
-        928
+        5392,
+        2992
       ]
     },
     {
@@ -562,13 +720,13 @@
         "mode": "runOnceForEachItem",
         "jsCode": "const item = $json;\nconst resumo = `🟡 Empresa em atenção — vale acompanhar.\\n\\nEmpresa: ${item.razao_social}\\nCNPJ: ${item.cnpj}\\nSegmento (CNAE): ${item.cnae_descricao}\\nSituação cadastral: ${item.situacao_cadastral}\\nPorte: ${item.porte} | Capital social: R$ ${item.capital_social}\\nLocalização: ${item.municipio}/${item.uf}\\n\\n📊 Análise da IA: ${item.resumo_ia || 'não disponível'}\\n💡 Abordagem sugerida: ${item.abordagem_sugerida || 'não disponível'}\\n\\nContato: ${item.email || 'email não informado'} | ${item.ddd_telefone_1 || 'telefone não informado'}\\nSócios: ${item.socios || 'não informado'}\\nFonte do enriquecimento: ${item.fonte_enriquecimento}`;\n\nreturn { json: { ...item, resumo } };"
       },
-      "id": "2e8e09ba-395e-4e31-8039-81d9c1d98283",
+      "id": "c9c736ce-72ba-44d3-87c3-cfdcd5be10f9",
       "name": "Montar Resumo (Atenção)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3976,
-        1024
+        5600,
+        3088
       ]
     },
     {
@@ -579,13 +737,13 @@
         "messageText": "={{ $json.resumo }}",
         "options_message": {}
       },
-      "id": "602ad8f4-44ba-4d5f-b4c0-26d7111e5d30",
+      "id": "c31d9d12-fe2c-4121-80a0-9d8d23fdc39f",
       "name": "Enviar Resumo SDR (Atenção)",
       "type": "n8n-nodes-evolution-api.evolutionApi",
       "typeVersion": 1,
       "position": [
-        4184,
-        1008
+        5808,
+        3072
       ],
       "credentials": {
         "evolutionApi": {
@@ -612,16 +770,29 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ inputs: [ { idProperty: 'cnpj', id: $json.cnpj, properties: { cnpj: $json.cnpj, company: $json.razao_social || '', email: $json.email || '', phone: $json.ddd_telefone_1 || '', segmento: $json.segmento || '', porte: $json.porte || '', capital_social: String($json.capital_social || ''), lead_tier: $json.tier, lifecyclestage: $json.lifecyclestage || '', resumo_ia: $json.resumo_ia || '' } } ] }) }}",
-        "options": {}
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 8,
+              "batchInterval": 300
+            }
+          }
+        }
       },
-      "id": "f1a2b3c4-0001-4000-8000-000000000006",
+      "id": "540328ae-84ae-439a-9f46-7ce9573175a6",
       "name": "HubSpot - Upsert Contato",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        3976,
-        860
+        5600,
+        2928
       ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "So6JthoQz2lzRX0w",
+          "name": "Openai Auth account"
+        }
+      },
       "onError": "continueRegularOutput"
     },
     {
@@ -639,13 +810,13 @@
           }
         }
       },
-      "id": "12a50e14-0092-44b9-8686-7193c3b4367e",
+      "id": "e6857ac9-de1d-4207-894e-42077b12af9f",
       "name": "Webhook - Listar Leads",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        384,
-        1376
+        2000,
+        3440
       ],
       "webhookId": "b7860feb-42ae-4c5d-b51a-c85ad520240e"
     },
@@ -667,13 +838,13 @@
         },
         "options": {}
       },
-      "id": "55eb17f8-289e-40ec-9ceb-4b0537e7cb25",
+      "id": "3bc6d735-7a4c-4732-b08a-d8f6ca622b51",
       "name": "Buscar Todos Leads",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
-        592,
-        1376
+        2208,
+        3440
       ],
       "credentials": {
         "googleSheetsOAuth2Api": {
@@ -686,13 +857,13 @@
       "parameters": {
         "jsCode": "const leads = items.map(i => i.json);\nreturn [{ json: { leads } }];"
       },
-      "id": "0a88b394-8e30-4140-b360-16684ea2b291",
+      "id": "a0a2cbe8-d3b0-4488-81a6-24c4baf0c549",
       "name": "Agrupar Leads em Array",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        784,
-        1376
+        2400,
+        3440
       ]
     },
     {
@@ -710,13 +881,13 @@
           }
         }
       },
-      "id": "28c5e6cf-41c6-4b36-a573-2a252eec697a",
+      "id": "585a848a-2030-4339-9d8c-48fd36cfb13c",
       "name": "Respond - Lista Leads",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        992,
-        1376
+        2608,
+        3440
       ]
     },
     {
@@ -724,31 +895,29 @@
         "rule": {
           "interval": [
             {
-              "field": "days",
-              "triggerAtHour": 8,
-              "triggerAtMinute": 0
+              "triggerAtHour": 8
             }
           ]
         }
       },
-      "id": "f1a2b3c4-0001-4000-8000-000000000007",
+      "id": "bdef0865-82db-49fa-884a-c46242d281fe",
       "name": "Schedule Trigger - Relatório Diário",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
-        384,
-        1700
+        2000,
+        3776
       ]
     },
     {
       "parameters": {},
-      "id": "f1a2b3c4-0001-4000-8000-000000000008",
+      "id": "c1279d78-2501-4b74-bf13-1e759d2619e4",
       "name": "Manual Trigger - Relatório Diário",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
       "position": [
-        384,
-        1860
+        2000,
+        3936
       ]
     },
     {
@@ -769,13 +938,13 @@
         },
         "options": {}
       },
-      "id": "f1a2b3c4-0001-4000-8000-000000000009",
+      "id": "e9ec31e6-acf1-4a7e-91c1-2c8e4a054e07",
       "name": "Buscar Todos Leads (Relatório)",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
-        608,
-        1780
+        2224,
+        3856
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -789,46 +958,50 @@
       "parameters": {
         "jsCode": "const leads = items.map(i => i.json).filter(l => l && Object.keys(l).length > 0);\n\nconst total = leads.length;\nconst countQuente = leads.filter(l => l.tier === 'quente').length;\nconst countAtencao = leads.filter(l => l.tier === 'atencao').length;\nconst countDesqualificado = leads.filter(l => l.tier === 'desqualificado').length;\n\nlet maiorTicket = null;\nlet menorTicket = null;\n\nfor (const lead of leads) {\n  const ticket = Number(lead.ticket_medio_mensal) || 0;\n  if (!maiorTicket || ticket > (Number(maiorTicket.ticket_medio_mensal) || 0)) {\n    maiorTicket = lead;\n  }\n  if (!menorTicket || ticket < (Number(menorTicket.ticket_medio_mensal) || 0)) {\n    menorTicket = lead;\n  }\n}\n\nreturn [{\n  json: { total, countQuente, countAtencao, countDesqualificado, maiorTicket, menorTicket }\n}];"
       },
-      "id": "f1a2b3c4-0001-4000-8000-000000000010",
+      "id": "7defad55-e392-4935-a634-e5840c84c4f2",
       "name": "Calcular Estatísticas do Relatório",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        832,
-        1780
+        2448,
+        3856
       ]
     },
     {
       "parameters": {
         "jsCode": "const item = items[0].json;\nconst total = item.total;\nconst maiorTicket = item.maiorTicket;\nconst menorTicket = item.menorTicket;\n\nconst fmtMoeda = (v) => 'R$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });\n\nfunction blocoLead(lead, titulo) {\n  if (!lead) return `<p>${titulo}: nenhum lead disponível.</p>`;\n  const cnae = lead.cnae_descricao || lead.cnae_decricao || '-';\n  return `\n    <div style=\"border:1px solid #ddd;border-radius:8px;padding:12px;margin:8px 0;\">\n      <h3 style=\"margin:0 0 8px 0;\">${titulo}</h3>\n      <p><strong>Nome:</strong> ${lead.nome || '-'}</p>\n      <p><strong>Empresa:</strong> ${lead.razao_social || lead.empresa || '-'}</p>\n      <p><strong>Ticket médio mensal:</strong> ${fmtMoeda(lead.ticket_medio_mensal)}</p>\n      <p><strong>Porte:</strong> ${lead.porte || '-'}</p>\n      <p><strong>Segmento (CNAE):</strong> ${cnae}</p>\n      <p><strong>Resumo da IA:</strong> ${lead.resumo_ia || 'não disponível'}</p>\n    </div>`;\n}\n\nconst html = total === 0\n  ? `<h2>📊 Relatório diário de leads — CadastroLeads</h2><p>Nenhum lead cadastrado na planilha ainda.</p>`\n  : `\n    <h2>📊 Relatório diário de leads — CadastroLeads</h2>\n    <p>Total de leads cadastrados (acumulado, todas as linhas da planilha): <strong>${total}</strong></p>\n    <ul>\n      <li>🔥 Quente: <strong>${item.countQuente}</strong></li>\n      <li>🟡 Atenção: <strong>${item.countAtencao}</strong></li>\n      <li>🌱 Nutrir (desqualificado): <strong>${item.countDesqualificado}</strong></li>\n    </ul>\n    ${blocoLead(maiorTicket, '💰 Maior ticket médio mensal')}\n    ${blocoLead(menorTicket, '📉 Menor ticket médio mensal')}\n  `;\n\nconst subject = `Relatório diário de leads — ${total} leads (${new Date().toLocaleDateString('pt-BR')})`;\n\nreturn [{ json: { subject, htmlBody: html } }];"
       },
-      "id": "f1a2b3c4-0001-4000-8000-000000000011",
+      "id": "bbf42cbd-6fcb-46d9-aa38-8f7365af8313",
       "name": "Montar Email Relatório (HTML)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1056,
-        1780
+        2672,
+        3856
       ]
     },
     {
       "parameters": {
-        "resource": "message",
-        "operation": "send",
         "sendTo": "ekriator@gmail.com",
         "subject": "={{ $json.subject }}",
-        "emailType": "html",
         "message": "={{ $json.htmlBody }}",
         "options": {}
       },
-      "id": "f1a2b3c4-0001-4000-8000-000000000012",
+      "id": "bee04e76-f8fe-4317-8a01-a975cb0d7ed4",
       "name": "Gmail - Enviar Relatório Diário",
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
       "position": [
-        1280,
-        1780
-      ]
+        2896,
+        3856
+      ],
+      "webhookId": "cbb40a9c-df3d-407a-aa80-f077be45d7a1",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "dCPy3k1LuZEPfEgi",
+          "name": "Gmail account"
+        }
+      }
     },
     {
       "parameters": {
@@ -854,13 +1027,13 @@
           }
         }
       },
-      "id": "b0a9b8b2-73b8-4bc2-bb36-2e06e0b6eeea",
+      "id": "45480cb6-7b80-4be1-8d26-02770ba9f948",
       "name": "Webhook - Buscar Empresas",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        384,
-        832
+        2000,
+        2896
       ],
       "webhookId": "daf00a7b-5362-4cbe-9379-4fd218895792"
     },
@@ -896,26 +1069,26 @@
         },
         "options": {}
       },
-      "id": "bff637f7-e57b-4b87-b47f-0339e7b88f3e",
+      "id": "ca5a31a9-d649-45e4-aeb8-ac4b0b0ec32f",
       "name": "Normalizar Busca",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        592,
-        832
+        2208,
+        2896
       ]
     },
     {
       "parameters": {
         "jsCode": "const SEGMENTO_CNAE_MAP = {\n  tecnologia: ['6201501'], varejo_vestuario: ['4781400'], alimentacao: ['5611201'],\n  construcao_civil: ['4120400'], saude_odonto: ['8630504'], educacao_idiomas: ['8593700'],\n  beleza_estetica: ['9602501'], contabilidade_consultoria: ['6920601'],\n  logistica_transporte: ['4930202'], ecommerce: ['4791100'],\n  seguranca_patrimonial: ['8011101'], limpeza_zeladoria: ['8121400'], mecanica: ['4520001']\n};\nconst item = items[0].json;\nconst cnaes = SEGMENTO_CNAE_MAP[item.segmento] || [];\nreturn cnaes.map(cnae => ({ json: { ...item, cnae } }));"
       },
-      "id": "2e92752a-35c0-46a6-a006-fc0bb34dd8bb",
+      "id": "9468796d-5ed6-42ae-b109-e1e30c1a1dd0",
       "name": "Mapear Segmento para CNAE",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        784,
-        832
+        2400,
+        2896
       ]
     },
     {
@@ -923,13 +1096,13 @@
         "url": "=https://minhareceita.org/?cnae={{ $json.cnae }}&uf={{ $json.estado }}&limit=1000",
         "options": {}
       },
-      "id": "64b3c43c-36b8-42f6-9896-09ee6fe5ffc0",
+      "id": "a4c59f06-dc39-4876-952d-68f584965888",
       "name": "Buscar Empresas - Minha Receita",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        992,
-        832
+        2608,
+        2896
       ],
       "onError": "continueRegularOutput"
     },
@@ -937,26 +1110,26 @@
       "parameters": {
         "jsCode": "const search = $('Normalizar Busca').first().json;\nconst companies = [];\nfor (const response of items) {\n  const data = Array.isArray(response.json.data) ? response.json.data : [];\n  for (const company of data) {\n    companies.push({ json: { ...company, segmento: search.segmento, uf: search.estado, cidade: search.cidade, telefone_sdr: search.telefone_sdr } });\n  }\n}\nreturn companies;"
       },
-      "id": "fc4eb736-de32-4636-b5e0-21c47cf94728",
+      "id": "e3acb0fa-794e-4fe2-9b99-4918c8f8a800",
       "name": "Extrair Lista de Empresas",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1184,
-        832
+        2800,
+        2896
       ]
     },
     {
       "parameters": {
-        "jsCode": "const MAX_RESULTADOS = 30;\nconst normalizar = s => (s || '').toString().trim().toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '');\nconst alvo = normalizar(items[0]?.json.cidade);\nconst filtrados = items.filter(i => {\n  const municipio = normalizar(i.json.municipio);\n  const situacao = (i.json.descricao_situacao_cadastral || '').toString().trim().toUpperCase();\n  return municipio === alvo && situacao === 'ATIVA';\n});\nreturn filtrados.slice(0, MAX_RESULTADOS);"
+        "jsCode": "const MAX_RESULTADOS = 100;\nconst normalizar = s => (s || '').toString().trim().toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '');\nconst soDigitos = s => (s || '').toString().replace(/\\D/g, '');\nconst alvo = normalizar(items[0]?.json.cidade);\nconst cnpjsExistentes = new Set($('Buscar CNPJs Existentes').all().map(i => soDigitos(i.json.cnpj)));\nconst filtrados = items.filter(i => {\n  const municipio = normalizar(i.json.municipio);\n  const situacao = (i.json.descricao_situacao_cadastral || '').toString().trim().toUpperCase();\n  const jaExiste = cnpjsExistentes.has(soDigitos(i.json.cnpj));\n  const cidadeOk = !alvo || municipio === alvo;\n  return cidadeOk && situacao === 'ATIVA' && !jaExiste;\n});\nreturn filtrados.slice(0, MAX_RESULTADOS);"
       },
-      "id": "145e2ed9-6228-42f1-8636-9824efcdd2d2",
+      "id": "4fd7fceb-29c8-4b42-9e4a-df5ea651f8df",
       "name": "Filtrar Cidade e Situacao Ativa",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1392,
-        832
+        3008,
+        2896
       ]
     },
     {
@@ -983,13 +1156,13 @@
         },
         "options": {}
       },
-      "id": "729e25af-4fe3-4a8e-a0fa-1554910edc53",
+      "id": "fe910ba2-6413-4a2c-bc0a-0c8f60ac30a2",
       "name": "IF - Dados Completos da Minha Receita",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        1584,
-        832
+        3200,
+        2896
       ]
     },
     {
@@ -997,26 +1170,26 @@
         "mode": "runOnceForEachItem",
         "jsCode": "const api = $json;\nreturn { json: {\n  ...api,\n  razao_social: api.razao_social || api.nome_fantasia || '',\n  cnae_descricao: api.cnae_fiscal_descricao || '',\n  porte: api.porte || '',\n  situacao_cadastral: api.descricao_situacao_cadastral || '',\n  capital_social: Number(api.capital_social) || 0,\n  socios: Array.isArray(api.qsa) ? api.qsa.map(s => s.nome_socio).filter(Boolean).join('; ') : '',\n  fonte_enriquecimento: 'MinhaReceita'\n} };"
       },
-      "id": "42aff8aa-68fb-4062-b1a7-8e8cd6695a18",
+      "id": "abe89d9f-e7e4-41eb-a696-08116f7ccb90",
       "name": "Adaptar Dados Minha Receita",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1792,
-        736
+        3408,
+        2800
       ]
     },
     {
       "parameters": {
         "jsCode": "const search = $('Normalizar Busca').first().json;\nconst companies = items.map(i => {\n  const c = i.json;\n  return {\n    cnpj: c.cnpj,\n    razao_social: c.razao_social,\n    cnae_descricao: c.cnae_descricao,\n    situacao_cadastral: c.situacao_cadastral,\n    porte: c.porte,\n    capital_social: c.capital_social,\n    municipio: c.municipio,\n    uf: c.uf,\n    email: c.email || '',\n    telefone: c.ddd_telefone_1 || '',\n    socios: c.socios || '',\n    tier: c.tier,\n    resumo_ia: c.resumo_ia || '',\n    abordagem_sugerida: c.abordagem_sugerida || '',\n    fonte_enriquecimento: c.fonte_enriquecimento\n  };\n});\n\nreturn [{ json: {\n  status: 'ok',\n  segmento: search.segmento,\n  estado: search.estado,\n  cidade: search.cidade,\n  total_encontrado: companies.length,\n  companies\n} }];"
       },
-      "id": "ea05cbdf-18f0-43ff-9946-ed0d62649ac6",
+      "id": "42b0cd48-ff04-480c-ae45-5824d3e223cd",
       "name": "Agregar Resultado Final",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4400,
-        860
+        6016,
+        2928
       ]
     },
     {
@@ -1034,17 +1207,77 @@
           }
         }
       },
-      "id": "e1042577-9b36-471e-b65d-7934fa55a927",
+      "id": "0fa367aa-b4b4-4791-92cd-b681baa68cce",
       "name": "Respond - Resultado da Busca",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        4600,
-        860
+        6224,
+        2928
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "return { json: $('Parse Resposta IA').item.json };"
+      },
+      "id": "bfa126c5-46eb-4157-942e-3ab5445b840c",
+      "name": "Restaurar Dados Originais",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5088,
+        2896
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1Qhoi8hoJHXWTEBgHrulFQz2-CocUhbUNBRrWHJgH2A8",
+          "mode": "list",
+          "cachedResultName": "CadastroLeads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Qhoi8hoJHXWTEBgHrulFQz2-CocUhbUNBRrWHJgH2A8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Qhoi8hoJHXWTEBgHrulFQz2-CocUhbUNBRrWHJgH2A8/edit#gid=0"
+        },
+        "options": {}
+      },
+      "id": "cf0268ba-3b8d-435b-bb42-ffa2d8a29ab6",
+      "name": "Buscar CNPJs Existentes",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2208,
+        3050
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "mw0T5OyoQJ8tCkDM",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return [{ json: $('Normalizar Busca').first().json }];"
+      },
+      "id": "6524c7b7-67b5-482d-bdb9-69724b8cc7ab",
+      "name": "Restaurar Busca Apos Leitura CNPJs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2400,
+        3050
       ]
     }
   ],
-  "pinData": {},
   "connections": {
     "Webhook - Buscar Empresas": {
       "main": [
@@ -1079,7 +1312,7 @@
       "main": [
         [
           {
-            "node": "Mapear Segmento para CNAE",
+            "node": "Buscar CNPJs Existentes",
             "type": "main",
             "index": 0
           }
@@ -1269,7 +1502,7 @@
       "main": [
         [
           {
-            "node": "IF Tier = Quente",
+            "node": "Restaurar Dados Originais",
             "type": "main",
             "index": 0
           }
@@ -1453,18 +1686,47 @@
           }
         ]
       ]
+    },
+    "Restaurar Dados Originais": {
+      "main": [
+        [
+          {
+            "node": "IF Tier = Quente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar CNPJs Existentes": {
+      "main": [
+        [
+          {
+            "node": "Restaurar Busca Apos Leitura CNPJs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Restaurar Busca Apos Leitura CNPJs": {
+      "main": [
+        [
+          {
+            "node": "Mapear Segmento para CNAE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
-  "active": true,
   "settings": {
-    "executionOrder": "v1",
-    "binaryMode": "separate"
+    "executionOrder": "v1"
   },
-  "versionId": "7e685022-6f80-42f6-9ed6-c8109e227673",
-  "meta": {
-    "templateCredsSetupCompleted": true,
-    "instanceId": "01e2099a5855a94c56f7681aa111ae19bddd022b67076c84ae60a0da5c24bd63"
-  },
-  "id": "6261w2UtAVr3Ad0y",
-  "tags": []
+  "staticData": {
+    "node:Schedule Trigger - Relatório Diário": {
+      "recurrenceRules": []
+    }
+  }
 }

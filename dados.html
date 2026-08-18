@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tabela de Leads | ALPHADATA</title>
+  <style>
+    :root {
+      --accent: #2f6fd1;
+      --accent-light: #4f8fe3;
+      --accent-soft: rgba(47, 111, 209, 0.16);
+      --gold: #d4af73;
+      --bg-top: #0f1c2b;
+      --bg-bottom: #060d16;
+      --card-bg: #131f2e;
+      --input-bg: #0b1420;
+      --text: #eef2f6;
+      --text-muted: #9aa8ba;
+      --border: #24374a;
+      --error: #ff7a7a;
+      --success: #4ade80;
+      --hot: #ff7a7a;
+      --hot-soft: rgba(255, 122, 122, 0.10);
+      --warn: #d4af73;
+      --warn-soft: rgba(212, 175, 115, 0.10);
+      --cold: #9aa8ba;
+      --cold-soft: rgba(154, 168, 186, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background:
+        radial-gradient(1200px 600px at 15% -10%, rgba(47, 111, 209, 0.14), transparent 60%),
+        radial-gradient(900px 500px at 100% 110%, rgba(212, 175, 115, 0.10), transparent 60%),
+        linear-gradient(160deg, var(--bg-top), var(--bg-bottom));
+      background-attachment: fixed;
+      color: var(--text);
+      min-height: 100vh;
+      padding: 32px 24px 60px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .page {
+      max-width: 1520px;
+      margin: 0 auto;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 10px;
+    }
+
+    .eyebrow::before,
+    .eyebrow::after {
+      content: "";
+      width: 18px;
+      height: 1px;
+      background: var(--gold);
+      opacity: 0.6;
+    }
+
+    .brand-logo {
+      height: 22px;
+      width: auto;
+      display: block;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--accent);
+      margin: 0 0 6px;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 0.92rem;
+      margin: 0;
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .back-link {
+      color: var(--accent);
+      font-size: 0.88rem;
+      font-weight: 600;
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.15s ease;
+    }
+
+    .back-link:hover {
+      border-color: var(--accent);
+    }
+
+    button {
+      font-family: inherit;
+    }
+
+    #refreshBtn,
+    #exportBtn {
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      color: #fff;
+      border: none;
+      border-radius: 9px;
+      padding: 11px 20px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: 0 10px 20px -8px rgba(47, 111, 209, 0.45);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+    }
+
+    #exportBtn {
+      background: linear-gradient(135deg, #2f9e6b, #4ade80);
+      box-shadow: 0 10px 20px -8px rgba(74, 222, 128, 0.35);
+    }
+
+    #refreshBtn:hover:not(:disabled),
+    #exportBtn:hover:not(:disabled) {
+      transform: translateY(-1px);
+    }
+
+    #refreshBtn:disabled,
+    #exportBtn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .load-error {
+      display: none;
+      background: rgba(255, 122, 122, 0.12);
+      color: var(--error);
+      border: 1px solid rgba(255, 122, 122, 0.25);
+      border-radius: 9px;
+      padding: 13px 16px;
+      font-size: 0.9rem;
+      margin-bottom: 24px;
+    }
+
+    .load-error.show {
+      display: block;
+    }
+
+    .loading-state {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.92rem;
+      padding: 40px 0;
+    }
+
+    .filters-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px 20px;
+      margin-bottom: 20px;
+      display: none;
+    }
+
+    .filters-card.show {
+      display: block;
+    }
+
+    .filters-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .filters-grid .field-search {
+      grid-column: span 2;
+    }
+
+    .filters-grid label {
+      display: block;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .filters-grid select,
+    .filters-grid input[type="text"] {
+      width: 100%;
+      padding: 9px 11px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.86rem;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--input-bg);
+    }
+
+    .filters-grid select:focus,
+    .filters-grid input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .filters-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      border-top: 1px solid var(--border);
+      padding-top: 12px;
+    }
+
+    .result-count {
+      font-size: 0.84rem;
+      color: var(--text-muted);
+    }
+
+    .result-count strong {
+      color: var(--text);
+    }
+
+    #clearFiltersBtn {
+      background: transparent;
+      color: var(--accent);
+      border: 1.5px solid var(--accent);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+
+    #clearFiltersBtn:hover {
+      background: var(--accent-soft);
+    }
+
+    .table-wrap {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: auto;
+      max-height: 72vh;
+      display: none;
+    }
+
+    .table-wrap.show {
+      display: block;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      min-width: 2200px;
+      font-size: 0.82rem;
+    }
+
+    thead th {
+      position: sticky;
+      top: 0;
+      background: #182739;
+      color: var(--text-muted);
+      text-align: left;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+      z-index: 1;
+    }
+
+    tbody td {
+      padding: 9px 12px;
+      border-bottom: 1px solid rgba(36, 55, 74, 0.6);
+      color: var(--text);
+      white-space: nowrap;
+      max-width: 320px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    tbody td.wrap {
+      white-space: normal;
+      min-width: 220px;
+    }
+
+    tbody tr:hover td {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .tag {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 999px;
+      white-space: nowrap;
+      display: inline-block;
+    }
+
+    .tag.tier-quente {
+      background: var(--hot-soft);
+      color: var(--hot);
+    }
+
+    .tag.tier-atencao {
+      background: var(--warn-soft);
+      color: var(--warn);
+    }
+
+    .tag.tier-desqualificado {
+      background: var(--cold-soft);
+      color: var(--cold);
+    }
+
+    .empty-state {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      padding: 40px 0;
+    }
+
+    @media (max-width: 640px) {
+      .filters-grid .field-search {
+        grid-column: span 1;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="page">
+    <div class="topbar">
+      <div>
+        <span class="eyebrow"><img src="LogoALPHADATA.png" alt="ALPHADATA" class="brand-logo"></span>
+        <h1>Tabela de Leads</h1>
+        <p class="subtitle">Todos os dados coletados, com filtros e exportação para Excel (CSV).</p>
+      </div>
+      <div class="actions">
+        <a class="back-link" href="index.html">&larr; Buscar empresas</a>
+        <a class="back-link" href="kanban.html">Kanban</a>
+        <button type="button" id="exportBtn" disabled>Exportar Excel</button>
+        <button type="button" id="refreshBtn">Atualizar</button>
+      </div>
+    </div>
+
+    <div class="load-error" id="loadError">Não foi possível carregar os leads. Tente atualizar novamente em instantes.
+    </div>
+    <div class="loading-state" id="loadingState">Carregando leads...</div>
+
+    <div class="filters-card" id="filtersCard">
+      <div class="filters-grid">
+        <div class="field-search">
+          <label for="fBusca">Buscar (razão social / CNPJ / cidade)</label>
+          <input type="text" id="fBusca" placeholder="Digite para filtrar...">
+        </div>
+        <div>
+          <label for="fSegmento">Segmento</label>
+          <select id="fSegmento"><option value="">Todos</option></select>
+        </div>
+        <div>
+          <label for="fUf">UF</label>
+          <select id="fUf"><option value="">Todos</option></select>
+        </div>
+        <div>
+          <label for="fTier">Tier</label>
+          <select id="fTier"><option value="">Todos</option></select>
+        </div>
+        <div>
+          <label for="fSituacao">Situação</label>
+          <select id="fSituacao"><option value="">Todas</option></select>
+        </div>
+        <div>
+          <label for="fPorte">Porte</label>
+          <select id="fPorte"><option value="">Todos</option></select>
+        </div>
+        <div>
+          <label for="fFonte">Fonte</label>
+          <select id="fFonte"><option value="">Todas</option></select>
+        </div>
+      </div>
+      <div class="filters-footer">
+        <span class="result-count" id="resultCount"></span>
+        <button type="button" id="clearFiltersBtn">Limpar filtros</button>
+      </div>
+    </div>
+
+    <div class="table-wrap" id="tableWrap">
+      <table>
+        <thead>
+          <tr id="tableHeadRow"></tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const LEADS_API_URL = "https://automacoes-n8n.m5jmff.easypanel.host/webhook/leads-kanban";
+
+    const loadingState = document.getElementById('loadingState');
+    const loadError = document.getElementById('loadError');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const exportBtn = document.getElementById('exportBtn');
+    const filtersCard = document.getElementById('filtersCard');
+    const tableWrap = document.getElementById('tableWrap');
+    const tableHeadRow = document.getElementById('tableHeadRow');
+    const tableBody = document.getElementById('tableBody');
+    const resultCount = document.getElementById('resultCount');
+    const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+
+    const fBusca = document.getElementById('fBusca');
+    const fSegmento = document.getElementById('fSegmento');
+    const fUf = document.getElementById('fUf');
+    const fTier = document.getElementById('fTier');
+    const fSituacao = document.getElementById('fSituacao');
+    const fPorte = document.getElementById('fPorte');
+    const fFonte = document.getElementById('fFonte');
+
+    const TIER_INFO = {
+      quente: { label: '🔥 Quente', cls: 'tier-quente' },
+      atencao: { label: '🟡 Em Atenção', cls: 'tier-atencao' },
+      desqualificado: { label: '⚪ Desqualificado', cls: 'tier-desqualificado' }
+    };
+
+    // Colunas exibidas (excluímos telefone_sdr: é o número interno do SDR, não é dado do lead).
+    const COLUMNS = [
+      { key: 'timestamp', label: 'Data' },
+      { key: 'razao_social', label: 'Razão Social', wrap: true },
+      { key: 'nome_fantasia', label: 'Nome Fantasia' },
+      { key: 'cnpj', label: 'CNPJ' },
+      { key: 'tier', label: 'Tier' },
+      { key: 'situacao_cadastral', label: 'Situação' },
+      { key: 'porte', label: 'Porte' },
+      { key: 'capital_social', label: 'Capital Social' },
+      { key: 'cnae_descricao', label: 'CNAE (Descrição)', wrap: true },
+      { key: 'cnae_fiscal', label: 'CNAE (Código)' },
+      { key: 'segmento', label: 'Segmento' },
+      { key: 'municipio', label: 'Município' },
+      { key: 'cidade', label: 'Cidade (busca)' },
+      { key: 'uf', label: 'UF' },
+      { key: 'ddd_telefone_1', label: 'Telefone 1' },
+      { key: 'ddd_telefone_2', label: 'Telefone 2' },
+      { key: 'socios', label: 'Sócios', wrap: true },
+      { key: 'fonte_enriquecimento', label: 'Fonte' },
+      { key: 'natureza_juridica', label: 'Natureza Jurídica' },
+      { key: 'descricao_identificador_matriz_filial', label: 'Matriz/Filial' },
+      { key: 'opcao_pelo_mei', label: 'MEI' },
+      { key: 'cep', label: 'CEP' },
+      { key: 'logradouro', label: 'Logradouro', wrap: true },
+      { key: 'numero', label: 'Número' },
+      { key: 'bairro', label: 'Bairro' },
+      { key: 'complemento', label: 'Complemento', wrap: true },
+      { key: 'pais', label: 'País' },
+      { key: 'codigo_porte', label: 'Cód. Porte' },
+      { key: 'cnae_fiscal_descricao', label: 'CNAE Fiscal (Descrição)', wrap: true },
+      { key: 'cnaes_secundarios', label: 'CNAEs Secundários', wrap: true },
+    ];
+
+    let allLeads = [];
+
+    function escapeHtml(value) {
+      const div = document.createElement('div');
+      div.textContent = value == null ? '' : String(value);
+      return div.innerHTML;
+    }
+
+    function formatTimestamp(ts) {
+      if (!ts) return '';
+      const date = new Date(ts);
+      if (isNaN(date.getTime())) return String(ts);
+      return date.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+
+    function normalizar(s) {
+      return (s || '').toString().trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+
+    function uniqueSorted(values) {
+      return Array.from(new Set(values.filter(v => v !== undefined && v !== null && v !== ''))).sort((a, b) =>
+        a.toString().localeCompare(b.toString(), 'pt-BR')
+      );
+    }
+
+    function populateSelect(selectEl, values, placeholder) {
+      const current = selectEl.value;
+      selectEl.innerHTML = `<option value="">${placeholder}</option>` +
+        values.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+      if (values.includes(current)) selectEl.value = current;
+    }
+
+    function buildFilterOptions() {
+      populateSelect(fSegmento, uniqueSorted(allLeads.map(l => l.segmento)), 'Todos');
+      populateSelect(fUf, uniqueSorted(allLeads.map(l => l.uf)), 'Todos');
+      populateSelect(fSituacao, uniqueSorted(allLeads.map(l => l.situacao_cadastral)), 'Todas');
+      populateSelect(fPorte, uniqueSorted(allLeads.map(l => l.porte)), 'Todos');
+      populateSelect(fFonte, uniqueSorted(allLeads.map(l => l.fonte_enriquecimento)), 'Todas');
+
+      const tierValues = uniqueSorted(allLeads.map(l => l.tier));
+      const current = fTier.value;
+      fTier.innerHTML = '<option value="">Todos</option>' +
+        tierValues.map(t => `<option value="${escapeHtml(t)}">${escapeHtml((TIER_INFO[t] || {}).label || t)}</option>`).join('');
+      if (tierValues.includes(current)) fTier.value = current;
+    }
+
+    function buildHead() {
+      tableHeadRow.innerHTML = COLUMNS.map(c => `<th>${escapeHtml(c.label)}</th>`).join('');
+    }
+
+    function cellValue(lead, col) {
+      if (col.key === 'timestamp') return formatTimestamp(lead.timestamp);
+      if (col.key === 'tier') {
+        const info = TIER_INFO[lead.tier] || { label: lead.tier || '', cls: '' };
+        return `<span class="tag ${info.cls}">${escapeHtml(info.label)}</span>`;
+      }
+      if (col.key === 'opcao_pelo_mei') {
+        const v = lead.opcao_pelo_mei;
+        return escapeHtml(v === true || v === 'Sim' ? 'Sim' : (v === false || v === 'Não' ? 'Não' : (v || '')));
+      }
+      return escapeHtml(lead[col.key]);
+    }
+
+    function getFiltered() {
+      const busca = normalizar(fBusca.value);
+      return allLeads.filter(l => {
+        if (fSegmento.value && l.segmento !== fSegmento.value) return false;
+        if (fUf.value && l.uf !== fUf.value) return false;
+        if (fTier.value && l.tier !== fTier.value) return false;
+        if (fSituacao.value && l.situacao_cadastral !== fSituacao.value) return false;
+        if (fPorte.value && l.porte !== fPorte.value) return false;
+        if (fFonte.value && l.fonte_enriquecimento !== fFonte.value) return false;
+        if (busca) {
+          const haystack = normalizar(`${l.razao_social || ''} ${l.cnpj || ''} ${l.cidade || ''} ${l.municipio || ''}`);
+          if (!haystack.includes(busca)) return false;
+        }
+        return true;
+      });
+    }
+
+    function renderTable() {
+      const filtered = getFiltered().slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+      resultCount.innerHTML = `<strong>${filtered.length}</strong> de ${allLeads.length} lead(s)`;
+      exportBtn.disabled = filtered.length === 0;
+
+      if (filtered.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="${COLUMNS.length}"><div class="empty-state">Nenhum lead encontrado com esses filtros.</div></td></tr>`;
+        return;
+      }
+
+      tableBody.innerHTML = filtered.map(lead => {
+        const cells = COLUMNS.map(c => `<td class="${c.wrap ? 'wrap' : ''}">${cellValue(lead, c)}</td>`).join('');
+        return `<tr>${cells}</tr>`;
+      }).join('');
+    }
+
+    function csvEscape(value) {
+      const s = value == null ? '' : String(value);
+      if (/[";\n\r]/.test(s)) {
+        return '"' + s.replace(/"/g, '""') + '"';
+      }
+      return s;
+    }
+
+    function exportCsv() {
+      const filtered = getFiltered().slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      if (filtered.length === 0) return;
+
+      const header = COLUMNS.map(c => csvEscape(c.label)).join(';');
+      const rows = filtered.map(lead => COLUMNS.map(c => {
+        if (c.key === 'timestamp') return csvEscape(formatTimestamp(lead.timestamp));
+        return csvEscape(lead[c.key]);
+      }).join(';'));
+
+      const csvContent = '﻿' + [header, ...rows].join('\r\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+      a.href = url;
+      a.download = `leads_alphadata_${stamp}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    async function loadLeads() {
+      loadingState.style.display = 'block';
+      loadError.classList.remove('show');
+      filtersCard.classList.remove('show');
+      tableWrap.classList.remove('show');
+      refreshBtn.disabled = true;
+      const originalText = refreshBtn.textContent;
+      refreshBtn.textContent = 'Atualizando...';
+
+      try {
+        const response = await fetch(LEADS_API_URL);
+        if (!response.ok) throw new Error('Resposta não-2xx do servidor: ' + response.status);
+
+        const data = await response.json();
+        allLeads = Array.isArray(data.leads) ? data.leads : [];
+
+        buildFilterOptions();
+        buildHead();
+        renderTable();
+
+        filtersCard.classList.add('show');
+        tableWrap.classList.add('show');
+      } catch (err) {
+        loadError.classList.add('show');
+      } finally {
+        loadingState.style.display = 'none';
+        refreshBtn.disabled = false;
+        refreshBtn.textContent = originalText;
+      }
+    }
+
+    [fBusca, fSegmento, fUf, fTier, fSituacao, fPorte, fFonte].forEach(el => {
+      el.addEventListener('input', renderTable);
+      el.addEventListener('change', renderTable);
+    });
+
+    clearFiltersBtn.addEventListener('click', () => {
+      fBusca.value = '';
+      [fSegmento, fUf, fTier, fSituacao, fPorte, fFonte].forEach(el => el.value = '');
+      renderTable();
+    });
+
+    refreshBtn.addEventListener('click', loadLeads);
+    exportBtn.addEventListener('click', exportCsv);
+
+    loadLeads();
+  </script>
+
+</body>
+
+</html>
