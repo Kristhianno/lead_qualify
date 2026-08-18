@@ -907,7 +907,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const SEGMENTO_CNAE_MAP = {\n  tecnologia: ['6201501'], varejo_vestuario: ['4781400'], alimentacao: ['5611201'],\n  construcao_civil: ['4120400'], saude_odonto: ['8630504'], educacao_idiomas: ['8593700'],\n  beleza_estetica: ['9602501'], contabilidade_consultoria: ['6920601'],\n  logistica_transporte: ['4930202'], ecommerce: ['4791100']\n};\nconst item = items[0].json;\nconst cnaes = SEGMENTO_CNAE_MAP[item.segmento] || [];\nreturn cnaes.map(cnae => ({ json: { ...item, cnae } }));"
+        "jsCode": "const SEGMENTO_CNAE_MAP = {\n  tecnologia: ['6201501'], varejo_vestuario: ['4781400'], alimentacao: ['5611201'],\n  construcao_civil: ['4120400'], saude_odonto: ['8630504'], educacao_idiomas: ['8593700'],\n  beleza_estetica: ['9602501'], contabilidade_consultoria: ['6920601'],\n  logistica_transporte: ['4930202'], ecommerce: ['4791100'],\n  seguranca_patrimonial: ['8011101'], limpeza_zeladoria: ['8121400'], mecanica: ['4520001']\n};\nconst item = items[0].json;\nconst cnaes = SEGMENTO_CNAE_MAP[item.segmento] || [];\nreturn cnaes.map(cnae => ({ json: { ...item, cnae } }));"
       },
       "id": "2e92752a-35c0-46a6-a006-fc0bb34dd8bb",
       "name": "Mapear Segmento para CNAE",
