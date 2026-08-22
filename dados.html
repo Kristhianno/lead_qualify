@@ -478,38 +478,40 @@
       desqualificado: { label: '⚪ Desqualificado', cls: 'tier-desqualificado' }
     };
 
-    // Colunas exibidas (excluímos telefone_sdr: é o número interno do SDR, não é dado do lead).
+    // Ordem fixa das colunas exibidas na tabela: CNPJ, Razão Social, Nome Fantasia,
+    // Telefone, Sócios, Porte, Estado, Cidade e Município. As demais colunas continuam
+    // existindo (hideInTable: true) para não perder dado nenhum na exportação para Excel.
     const COLUMNS = [
-      { key: 'timestamp', label: 'Data' },
+      { key: 'cnpj', label: 'CNPJ' },
       { key: 'razao_social', label: 'Razão Social', wrap: true },
       { key: 'nome_fantasia', label: 'Nome Fantasia' },
-      { key: 'cnpj', label: 'CNPJ' },
       { key: 'ddd_telefone_1', label: 'Telefone 1' },
       { key: 'ddd_telefone_2', label: 'Telefone 2' },
-      { key: 'email', label: 'Email' },
       { key: 'socios', label: 'Sócios', wrap: true },
-      { key: 'tier', label: 'Tier' },
-      { key: 'situacao_cadastral', label: 'Situação' },
       { key: 'porte', label: 'Porte' },
-      { key: 'capital_social', label: 'Capital Social' },
-      { key: 'cnae_descricao', label: 'CNAE (Descrição)', wrap: true },
-      { key: 'cnae_fiscal', label: 'CNAE (Código)' },
-      { key: 'segmento', label: 'Segmento' },
-      { key: 'municipio', label: 'Município' },
+      { key: 'uf', label: 'Estado' },
       { key: 'cidade', label: 'Cidade (busca)' },
-      { key: 'uf', label: 'UF' },
-      { key: 'fonte_enriquecimento', label: 'Fonte' },
-      { key: 'natureza_juridica', label: 'Natureza Jurídica' },
-      { key: 'descricao_identificador_matriz_filial', label: 'Matriz/Filial' },
-      { key: 'opcao_pelo_mei', label: 'MEI' },
+      { key: 'municipio', label: 'Município' },
+      { key: 'timestamp', label: 'Data', hideInTable: true },
+      { key: 'email', label: 'Email', hideInTable: true },
+      { key: 'tier', label: 'Tier', hideInTable: true },
+      { key: 'situacao_cadastral', label: 'Situação', hideInTable: true },
+      { key: 'capital_social', label: 'Capital Social', hideInTable: true },
+      { key: 'cnae_descricao', label: 'CNAE (Descrição)', wrap: true, hideInTable: true },
+      { key: 'cnae_fiscal', label: 'CNAE (Código)', hideInTable: true },
+      { key: 'segmento', label: 'Segmento', hideInTable: true },
+      { key: 'fonte_enriquecimento', label: 'Fonte', hideInTable: true },
+      { key: 'natureza_juridica', label: 'Natureza Jurídica', hideInTable: true },
+      { key: 'descricao_identificador_matriz_filial', label: 'Matriz/Filial', hideInTable: true },
+      { key: 'opcao_pelo_mei', label: 'MEI', hideInTable: true },
       { key: 'cep', label: 'CEP', hideInTable: true },
       { key: 'logradouro', label: 'Logradouro', wrap: true, hideInTable: true },
       { key: 'numero', label: 'Número', hideInTable: true },
-      { key: 'bairro', label: 'Bairro' },
+      { key: 'bairro', label: 'Bairro', hideInTable: true },
       { key: 'complemento', label: 'Complemento', wrap: true, hideInTable: true },
       { key: 'pais', label: 'País', hideInTable: true },
       { key: 'codigo_porte', label: 'Cód. Porte', hideInTable: true },
-      { key: 'cnae_fiscal_descricao', label: 'CNAE Fiscal (Descrição)', wrap: true },
+      { key: 'cnae_fiscal_descricao', label: 'CNAE Fiscal (Descrição)', wrap: true, hideInTable: true },
     ];
 
     // Colunas exibidas na tabela em tela (exclui as marcadas com hideInTable).
@@ -605,26 +607,49 @@
       if (values.includes(current)) selectEl.value = current;
     }
 
-    function buildFilterOptions() {
-      populateSelect(fSegmento, uniqueSorted(allLeads.map(l => l.segmento)), 'Todos');
-      populateSelect(fUf, uniqueSorted(allLeads.map(l => l.uf)), 'Todos');
-      populateSelect(fSituacao, uniqueSorted(allLeads.map(l => l.situacao_cadastral)), 'Todas');
-      populateSelect(fPorte, uniqueSorted(allLeads.map(l => l.porte)), 'Todos');
-      populateSelect(fFonte, uniqueSorted(allLeads.map(l => l.fonte_enriquecimento)), 'Todas');
-      populateSelect(fMunicipio, uniqueSorted(allLeads.map(l => l.municipio)), 'Todos');
-      updateBairroOptions();
+    // Cada filtro (exceto a busca por texto) checa o lead contra todos os outros filtros
+    // ativos, exceto o seu próprio campo — assim cada dropdown sempre reflete o restante
+    // da busca atual (ex: Segmento só lista o que ainda é possível dado UF/Tier/etc. já
+    // escolhidos), em vez de sempre listar todos os valores da base inteira.
+    const FILTER_SELECTS = {
+      segmento: fSegmento,
+      uf: fUf,
+      tier: fTier,
+      situacao_cadastral: fSituacao,
+      porte: fPorte,
+      fonte_enriquecimento: fFonte,
+      bairro: fBairro,
+      municipio: fMunicipio,
+    };
 
-      const tierValues = uniqueSorted(allLeads.map(l => l.tier));
-      const current = fTier.value;
-      fTier.innerHTML = '<option value="">Todos</option>' +
-        tierValues.map(t => `<option value="${escapeHtml(t)}">${escapeHtml((TIER_INFO[t] || {}).label || t)}</option>`).join('');
-      if (tierValues.includes(current)) fTier.value = current;
+    function matchesFilters(lead, excludeKey) {
+      const busca = normalizar(fBusca.value);
+      for (const key in FILTER_SELECTS) {
+        if (key === excludeKey) continue;
+        const value = FILTER_SELECTS[key].value;
+        if (value && lead[key] !== value) return false;
+      }
+      if (busca) {
+        const haystack = normalizar(`${lead.razao_social || ''} ${lead.cnpj || ''} ${lead.cidade || ''} ${lead.municipio || ''}`);
+        if (!haystack.includes(busca)) return false;
+      }
+      return true;
     }
 
-    // Bairro depende do Município selecionado: só mostra bairros que existem nesse município.
-    function updateBairroOptions() {
-      const base = fMunicipio.value ? allLeads.filter(l => l.municipio === fMunicipio.value) : allLeads;
-      populateSelect(fBairro, uniqueSorted(base.map(l => l.bairro)), 'Todos');
+    function buildFilterOptions() {
+      for (const key in FILTER_SELECTS) {
+        const leadsForField = allLeads.filter(l => matchesFilters(l, key));
+        if (key === 'tier') {
+          const tierValues = uniqueSorted(leadsForField.map(l => l.tier));
+          const current = fTier.value;
+          fTier.innerHTML = '<option value="">Todos</option>' +
+            tierValues.map(t => `<option value="${escapeHtml(t)}">${escapeHtml((TIER_INFO[t] || {}).label || t)}</option>`).join('');
+          if (tierValues.includes(current)) fTier.value = current;
+          continue;
+        }
+        const placeholder = key === 'situacao_cadastral' || key === 'fonte_enriquecimento' ? 'Todas' : 'Todos';
+        populateSelect(FILTER_SELECTS[key], uniqueSorted(leadsForField.map(l => l[key])), placeholder);
+      }
     }
 
     function buildHead() {
@@ -661,22 +686,7 @@
     }
 
     function getFiltered() {
-      const busca = normalizar(fBusca.value);
-      return allLeads.filter(l => {
-        if (fSegmento.value && l.segmento !== fSegmento.value) return false;
-        if (fUf.value && l.uf !== fUf.value) return false;
-        if (fTier.value && l.tier !== fTier.value) return false;
-        if (fSituacao.value && l.situacao_cadastral !== fSituacao.value) return false;
-        if (fPorte.value && l.porte !== fPorte.value) return false;
-        if (fFonte.value && l.fonte_enriquecimento !== fFonte.value) return false;
-        if (fBairro.value && l.bairro !== fBairro.value) return false;
-        if (fMunicipio.value && l.municipio !== fMunicipio.value) return false;
-        if (busca) {
-          const haystack = normalizar(`${l.razao_social || ''} ${l.cnpj || ''} ${l.cidade || ''} ${l.municipio || ''}`);
-          if (!haystack.includes(busca)) return false;
-        }
-        return true;
-      });
+      return allLeads.filter(l => matchesFilters(l, null));
     }
 
     function renderTable() {
@@ -758,21 +768,20 @@
       }
     }
 
-    [fBusca, fSegmento, fUf, fTier, fSituacao, fPorte, fFonte, fBairro].forEach(el => {
-      el.addEventListener('input', renderTable);
-      el.addEventListener('change', renderTable);
-    });
-
-    fMunicipio.addEventListener('change', () => {
-      updateBairroOptions();
+    function onFilterChange() {
+      buildFilterOptions();
       renderTable();
+    }
+
+    [fBusca, fSegmento, fUf, fTier, fSituacao, fPorte, fFonte, fBairro, fMunicipio].forEach(el => {
+      el.addEventListener('input', onFilterChange);
+      el.addEventListener('change', onFilterChange);
     });
 
     clearFiltersBtn.addEventListener('click', () => {
       fBusca.value = '';
       [fSegmento, fUf, fTier, fSituacao, fPorte, fFonte, fBairro, fMunicipio].forEach(el => el.value = '');
-      updateBairroOptions();
-      renderTable();
+      onFilterChange();
     });
 
     refreshBtn.addEventListener('click', loadLeads);
