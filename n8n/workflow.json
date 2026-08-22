@@ -176,7 +176,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const item = $json;\n\n// --- Constantes ajustáveis — recalibrar depois de ver dados reais do segmento buscado ---\nconst CAPITAL_SOCIAL_QUENTE = 100000;\nconst CAPITAL_SOCIAL_ATENCAO = 20000;\n\nfunction normalizarPorte(raw) {\n  const v = (raw ?? '').toString().trim().toUpperCase();\n  if (['01', '1', 'MICRO EMPRESA', 'ME'].includes(v)) return 'ME';\n  if (['03', '3', 'EMPRESA DE PEQUENO PORTE', 'EPP'].includes(v)) return 'EPP';\n  if (['05', '5', 'DEMAIS', 'DEMAIS EMPRESAS'].includes(v)) return 'DEMAIS';\n  return 'DESCONHECIDO';\n}\n\nconst porte = normalizarPorte(item.porte);\nconst capitalSocial = Number(item.capital_social) || 0;\n\nlet tier = 'desqualificado';\nif (porte === 'DEMAIS' && capitalSocial >= CAPITAL_SOCIAL_QUENTE) tier = 'quente';\nelse if (porte === 'DEMAIS' || (porte === 'EPP' && capitalSocial >= CAPITAL_SOCIAL_ATENCAO)) tier = 'atencao';\n\n// Valores INTERNOS da propriedade lifecyclestage (Lifecycle Stage), que é a\n// propriedade usada pelo Board de Contatos nesta conta do HubSpot — NÃO é\n// hs_lead_status (confirmado via GET /crm/v3/properties/contacts/lifecyclestage).\n// 'lead' e 'opportunity' são valores padrão do HubSpot; '1398914058' é o valor\n// interno auto-gerado quando a opção customizada \"Nutrir\" foi criada nesta\n// conta — não é literalmente a string 'nutrir'. Se recriar a opção em outra\n// conta, confira o valor de novo em Configurações > Propriedades > Lifecycle Stage.\nconst HUBSPOT_LIFECYCLE_STAGE = {\n  quente: 'lead',\n  atencao: 'opportunity',\n  desqualificado: '1398914058'\n};\n\nreturn { json: {\n  ...item,\n  porte,\n  tier,\n  lifecyclestage: HUBSPOT_LIFECYCLE_STAGE[tier],\n  timestamp: new Date().toISOString()\n} };"
+        "jsCode": "const item = $json;\n\n// --- Constantes ajustáveis — recalibrar depois de ver dados reais do segmento buscado ---\nconst CAPITAL_SOCIAL_QUENTE = 100000;\nconst CAPITAL_SOCIAL_ATENCAO = 20000;\n\nfunction normalizarPorte(raw) {\n  const v = (raw ?? '').toString().trim().toUpperCase();\n  if (['01', '1', 'MICRO EMPRESA', 'ME'].includes(v)) return 'ME';\n  if (['03', '3', 'EMPRESA DE PEQUENO PORTE', 'EPP'].includes(v)) return 'EPP';\n  if (['05', '5', 'DEMAIS', 'DEMAIS EMPRESAS'].includes(v)) return 'DEMAIS';\n  return 'DESCONHECIDO';\n}\n\nconst porte = normalizarPorte(item.porte);\nconst capitalSocial = Number(item.capital_social) || 0;\n\nconst situacaoAtiva = (item.situacao_cadastral || '').toString().trim().toUpperCase() === 'ATIVA';\n\nlet tier = 'desqualificado';\nif (situacaoAtiva) {\n  if (porte === 'DEMAIS' && capitalSocial >= CAPITAL_SOCIAL_QUENTE) tier = 'quente';\n  else if (porte === 'DEMAIS' || (porte === 'EPP' && capitalSocial >= CAPITAL_SOCIAL_ATENCAO)) tier = 'atencao';\n}\n\n// Valores INTERNOS da propriedade lifecyclestage (Lifecycle Stage), que é a\n// propriedade usada pelo Board de Contatos nesta conta do HubSpot — NÃO é\n// hs_lead_status (confirmado via GET /crm/v3/properties/contacts/lifecyclestage).\n// 'lead' e 'opportunity' são valores padrão do HubSpot; '1398914058' é o valor\n// interno auto-gerado quando a opção customizada \"Nutrir\" foi criada nesta\n// conta — não é literalmente a string 'nutrir'. Se recriar a opção em outra\n// conta, confira o valor de novo em Configurações > Propriedades > Lifecycle Stage.\nconst HUBSPOT_LIFECYCLE_STAGE = {\n  quente: 'lead',\n  atencao: 'opportunity',\n  desqualificado: '1398914058'\n};\n\nreturn { json: {\n  ...item,\n  porte,\n  tier,\n  lifecyclestage: HUBSPOT_LIFECYCLE_STAGE[tier],\n  timestamp: new Date().toISOString()\n} };"
       },
       "id": "2f5f69aa-2374-42eb-8073-b006a4f8b403",
       "name": "Calcula e Classifica tier",
@@ -1033,6 +1033,12 @@
               "name": "telefone_sdr",
               "type": "string",
               "value": "5541991497748"
+            },
+            {
+              "id": "b5",
+              "name": "cnpj",
+              "type": "string",
+              "value": "={{ ($json.body?.cnpj ?? $json.cnpj ?? '').toString().replace(/\\D/g, '') }}"
             }
           ]
         },
@@ -1259,6 +1265,67 @@
       "position": [
         4842,
         2796
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "c5",
+              "leftValue": "={{ !!$json.cnpj }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "bb0619cc-b62e-4f7c-977f-1f3d1e67796f",
+      "name": "IF - Busca Por CNPJ",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        800,
+        1120
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://minhareceita.org/{{ $json.cnpj }}",
+        "options": {}
+      },
+      "id": "878c7252-86f7-4856-b2d5-f91209c7e615",
+      "name": "Buscar Empresa - CNPJ Direto",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1000,
+        1120
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const search = $('Normalizar Busca').first().json;\nconst company = items[0]?.json;\n\n// Minha Receita responde 404 com { message: 'CNPJ ... não encontrado.' } pra CNPJ inexistente.\nif (!company || company.message || !company.cnpj) return [];\n\nreturn [{ json: {\n  ...company,\n  segmento: search.segmento || '',\n  uf: company.uf || search.estado || '',\n  cidade: company.municipio || '',\n  telefone_sdr: search.telefone_sdr\n} }];"
+      },
+      "id": "e9aeb6f6-9121-467b-bc58-da4de949adc3",
+      "name": "Formatar Busca CNPJ Direto",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        1120
       ]
     }
   ],
@@ -1697,7 +1764,7 @@
       "main": [
         [
           {
-            "node": "Mapear Segmento para CNAE",
+            "node": "IF - Busca Por CNPJ",
             "type": "main",
             "index": 0
           }
@@ -1709,6 +1776,46 @@
         [
           {
             "node": "Salvar Lead na Planilha",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Busca Por CNPJ": {
+      "main": [
+        [
+          {
+            "node": "Buscar Empresa - CNPJ Direto",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mapear Segmento para CNAE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Empresa - CNPJ Direto": {
+      "main": [
+        [
+          {
+            "node": "Formatar Busca CNPJ Direto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatar Busca CNPJ Direto": {
+      "main": [
+        [
+          {
+            "node": "IF - Dados Completos da Minha Receita",
             "type": "main",
             "index": 0
           }

@@ -212,6 +212,26 @@
       line-height: 1.5;
     }
 
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin: 26px 0;
+      color: var(--text-muted);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .divider::before,
+    .divider::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
     button[type="submit"] {
       margin-top: 10px;
       background: linear-gradient(135deg, var(--accent), var(--accent-light));
@@ -553,8 +573,9 @@
 
       <div class="field">
         <label for="cidade">Cidade (opcional)</label>
-        <input type="text" id="cidade" name="cidade" autocomplete="address-level2"
-          placeholder="Ex: São Paulo — deixe em branco para buscar em todo o estado">
+        <select id="cidade" name="cidade" disabled>
+          <option value="" selected>Selecione um estado primeiro</option>
+        </select>
         <span class="field-error" id="err-cidade"></span>
       </div>
 
@@ -570,6 +591,25 @@
 
       <p class="privacy-note">Os dados exibidos vêm de registros públicos da Receita Federal (Minha Receita /
         CNPJ.gov.br).</p>
+    </form>
+
+    <div class="divider"><span>ou</span></div>
+
+    <form id="lookupForm" novalidate>
+      <div class="field">
+        <label for="lookupQuery">Buscar uma empresa específica</label>
+        <input type="text" id="lookupQuery" name="lookupQuery"
+          placeholder="CNPJ, razão social ou nome fantasia">
+        <span class="field-error" id="err-lookupQuery"></span>
+      </div>
+
+      <div class="form-message error" id="lookupError"></div>
+      <div class="form-message info" id="lookupInfo"></div>
+
+      <button type="submit" id="lookupBtn">Buscar empresa</button>
+
+      <p class="privacy-note">Busca por CNPJ consulta a Receita Federal em tempo real. Busca por razão
+        social/nome fantasia procura só entre as empresas já encontradas antes.</p>
     </form>
 
     <div class="success-panel" id="botNotice">
@@ -607,8 +647,18 @@
 
     const segmentoSelect = document.getElementById('segmento');
     const estadoSelect = document.getElementById('estado');
-    const cidadeInput = document.getElementById('cidade');
+    const cidadeSelect = document.getElementById('cidade');
     const honeypotInput = document.getElementById('site');
+
+    const lookupForm = document.getElementById('lookupForm');
+    const lookupBtn = document.getElementById('lookupBtn');
+    const lookupQueryInput = document.getElementById('lookupQuery');
+    const lookupError = document.getElementById('lookupError');
+    const lookupInfo = document.getElementById('lookupInfo');
+
+    // URL do webhook GET do n8n que lista os leads já salvos na planilha (mesmo
+    // usado pelo Kanban e pela tabela completa).
+    const LEADS_API_URL = "https://automacoes-n8n.m5jmff.easypanel.host/webhook/leads-kanban";
 
     const TIER_INFO = {
       quente: { label: '🔥 Quente', cls: 'tier-quente' },
@@ -636,6 +686,44 @@
       }
       return out;
     }
+
+    function soDigitos(v) {
+      return (v || '').toString().replace(/\D/g, '');
+    }
+
+    function normalizarTexto(s) {
+      return (s || '').toString().trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+
+    // ---------- Cidade dependente do estado (API pública do IBGE) ----------
+
+    async function carregarCidadesDoEstado() {
+      const uf = estadoSelect.value;
+      cidadeSelect.innerHTML = '<option value="" selected>Todas as cidades do estado</option>';
+      cidadeSelect.disabled = true;
+
+      if (!uf) {
+        cidadeSelect.innerHTML = '<option value="" selected>Selecione um estado primeiro</option>';
+        return;
+      }
+
+      cidadeSelect.innerHTML = '<option value="" selected>Carregando cidades...</option>';
+
+      try {
+        const response = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios?orderBy=nome`);
+        if (!response.ok) throw new Error('IBGE respondeu ' + response.status);
+        const municipios = await response.json();
+
+        cidadeSelect.innerHTML = '<option value="" selected>Todas as cidades do estado</option>' +
+          municipios.map(m => `<option value="${escapeHtml(m.nome)}">${escapeHtml(m.nome)}</option>`).join('');
+        cidadeSelect.disabled = false;
+      } catch (err) {
+        cidadeSelect.innerHTML = '<option value="" selected>Não foi possível carregar as cidades — tente de novo</option>';
+        cidadeSelect.disabled = false;
+      }
+    }
+
+    estadoSelect.addEventListener('change', carregarCidadesDoEstado);
 
     function setFieldError(id, message) {
       const el = document.getElementById('err-' + id);
@@ -706,22 +794,34 @@
     `;
     }
 
-    function renderResults(data) {
-      const companies = Array.isArray(data.companies) ? data.companies : [];
-      const cidade = data.cidade || cidadeInput.value.trim();
-      const estado = data.estado || estadoSelect.value;
-      const local = cidade ? `${cidade}/${estado}` : `todo o estado de ${estado}`;
-
+    // Mostra a lista de resultados (ou a mensagem de "nada encontrado") num painel
+    // de mensagem à parte — reaproveitado tanto pela busca por segmento quanto
+    // pela busca por CNPJ/nome.
+    function showResults(companies, infoBox, emptyMessage, foundMessage) {
       if (companies.length === 0) {
-        formInfo.textContent = `Nenhuma empresa ativa encontrada em ${local} para esse segmento.`;
-        formInfo.classList.add('show');
+        infoBox.textContent = emptyMessage;
+        infoBox.classList.add('show');
         resultsPanel.classList.remove('show');
         return;
       }
 
-      resultsSummary.textContent = `${companies.length} empresa(s) ativa(s) encontrada(s) em ${local}.`;
+      resultsSummary.textContent = foundMessage(companies.length);
       resultsList.innerHTML = companies.map(buildResultCard).join('');
       resultsPanel.classList.add('show');
+    }
+
+    function renderResults(data) {
+      const companies = Array.isArray(data.companies) ? data.companies : [];
+      const cidade = data.cidade || cidadeSelect.value;
+      const estado = data.estado || estadoSelect.value;
+      const local = cidade ? `${cidade}/${estado}` : `todo o estado de ${estado}`;
+
+      showResults(
+        companies,
+        formInfo,
+        `Nenhuma empresa ativa encontrada em ${local} para esse segmento.`,
+        (n) => `${n} empresa(s) ativa(s) encontrada(s) em ${local}.`
+      );
     }
 
     // ---------- Envio ----------
@@ -746,7 +846,7 @@
       const payload = {
         segmento: segmentoSelect.value,
         estado: estadoSelect.value,
-        cidade: cidadeInput.value.trim()
+        cidade: cidadeSelect.value
       };
 
       submitBtn.disabled = true;
@@ -772,6 +872,119 @@
       } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = originalText;
+      }
+    });
+
+    // ---------- Busca por CNPJ / razão social / nome fantasia ----------
+
+    async function buscarLeadsSalvos() {
+      const response = await fetch(LEADS_API_URL);
+      if (!response.ok) {
+        throw new Error('Resposta não-2xx do servidor: ' + response.status);
+      }
+      const data = await response.json();
+      return Array.isArray(data.leads) ? data.leads : [];
+    }
+
+    // Normaliza uma linha da planilha (formato salvo, com ddd_telefone_1/nome_fantasia
+    // etc.) pro mesmo formato que buildResultCard já espera (igual ao que a busca por
+    // segmento devolve).
+    function normalizarLeadSalvo(lead) {
+      return {
+        cnpj: lead.cnpj,
+        razao_social: lead.razao_social || lead.nome_fantasia || '',
+        cnae_descricao: lead.cnae_descricao,
+        situacao_cadastral: lead.situacao_cadastral,
+        municipio: lead.municipio,
+        uf: lead.uf,
+        email: lead.email,
+        telefone: lead.ddd_telefone_1 || lead.ddd_telefone_2,
+        socios: lead.socios,
+        tier: lead.tier,
+        abordagem_sugerida: lead.abordagem_sugerida
+      };
+    }
+
+    function clearLookupErrors() {
+      setFieldError('lookupQuery', '');
+      lookupError.classList.remove('show');
+      lookupError.textContent = '';
+      lookupInfo.classList.remove('show');
+      lookupInfo.textContent = '';
+    }
+
+    lookupForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearLookupErrors();
+      resultsPanel.classList.remove('show');
+
+      const query = lookupQueryInput.value.trim();
+      if (!query) {
+        setFieldError('lookupQuery', 'Digite um CNPJ, razão social ou nome fantasia.');
+        return;
+      }
+
+      const digits = soDigitos(query);
+      const isCnpj = digits.length === 14;
+
+      lookupBtn.disabled = true;
+      const originalText = lookupBtn.textContent;
+      lookupBtn.textContent = 'Buscando...';
+
+      try {
+        const leadsSalvos = await buscarLeadsSalvos();
+
+        if (isCnpj) {
+          const existente = leadsSalvos.find(lead => soDigitos(lead.cnpj) === digits);
+
+          if (existente) {
+            showResults(
+              [normalizarLeadSalvo(existente)],
+              lookupInfo,
+              '',
+              () => 'Empresa já cadastrada — dados mais recentes da sua planilha.'
+            );
+            return;
+          }
+
+          // Não achou salva -> consulta a Receita Federal em tempo real e roda o
+          // mesmo pipeline de qualificação/alerta/planilha da busca por segmento.
+          const response = await fetch(WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cnpj: digits })
+          });
+
+          if (!response.ok) {
+            throw new Error('Resposta não-2xx do servidor: ' + response.status);
+          }
+
+          const data = await response.json();
+          const companies = Array.isArray(data.companies) ? data.companies : [];
+          showResults(
+            companies,
+            lookupInfo,
+            'CNPJ não encontrado na Receita Federal.',
+            () => 'Empresa encontrada e adicionada à sua planilha.'
+          );
+        } else {
+          const alvo = normalizarTexto(query);
+          const encontrados = leadsSalvos.filter(lead =>
+            normalizarTexto(lead.razao_social).includes(alvo) || normalizarTexto(lead.nome_fantasia).includes(alvo)
+          );
+          showResults(
+            encontrados.map(normalizarLeadSalvo),
+            lookupInfo,
+            'Nenhuma empresa salva encontrada com esse nome — essa busca procura só entre empresas já encontradas antes.',
+            (n) => `${n} empresa(s) encontrada(s) na sua planilha.`
+          );
+        }
+      } catch (err) {
+        lookupError.textContent = 'Não foi possível buscar agora. Verifique sua conexão e tente novamente em instantes.';
+        lookupError.classList.add('show');
+      } finally {
+        lookupBtn.disabled = false;
+        lookupBtn.textContent = originalText;
       }
     });
   </script>
