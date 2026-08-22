@@ -1096,7 +1096,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const MAX_RESULTADOS = 100;\nconst normalizar = s => (s || '').toString().trim().toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '');\nconst soDigitos = s => (s || '').toString().replace(/\\D/g, '');\nconst alvo = normalizar(items[0]?.json.cidade);\nconst cnpjsExistentes = new Set($('Buscar CNPJs Existentes').all().map(i => soDigitos(i.json.cnpj)));\nconst filtrados = items.filter(i => {\n  const municipio = normalizar(i.json.municipio);\n  const situacao = (i.json.descricao_situacao_cadastral || '').toString().trim().toUpperCase();\n  const jaExiste = cnpjsExistentes.has(soDigitos(i.json.cnpj));\n  const cidadeOk = !alvo || municipio === alvo;\n  return cidadeOk && situacao === 'ATIVA' && !jaExiste;\n});\nreturn filtrados.slice(0, MAX_RESULTADOS);"
+        "jsCode": "const MAX_RESULTADOS = 100;\nconst normalizar = s => (s || '').toString().trim().toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '');\nconst soDigitos = s => (s || '').toString().replace(/\\D/g, '');\n// Bug corrigido: cidade vinha de items[0].cidade (empresa da Minha Receita, que nao tem esse\n// campo -- so tem municipio). O alvo certo e a cidade da busca original do usuario.\nconst alvo = normalizar($('Normalizar Busca').first().json.cidade);\nconst cnpjsExistentes = new Set($('Buscar CNPJs Existentes').all().map(i => soDigitos(i.json.cnpj)));\nconst filtrados = items.filter(i => {\n  const municipio = normalizar(i.json.municipio);\n  const situacao = (i.json.descricao_situacao_cadastral || '').toString().trim().toUpperCase();\n  const jaExiste = cnpjsExistentes.has(soDigitos(i.json.cnpj));\n  const cidadeOk = !alvo || municipio === alvo;\n  return cidadeOk && situacao === 'ATIVA' && !jaExiste;\n});\nconst resultado = filtrados.slice(0, MAX_RESULTADOS);\n// Sem isso, quando a busca nao acha nenhuma empresa nova (ex: segmento+estado ja totalmente\n// mapeado antes), 0 itens saem daqui e nenhum node depois roda -- o webhook responde vazio\n// em vez de {status:'ok', companies:[]}. O marcador guia pro atalho de resposta vazia.\nif (resultado.length === 0) {\n  return [{ json: { _semResultadosNovos: true } }];\n}\nreturn resultado;"
       },
       "id": "4fd7fceb-29c8-4b42-9e4a-df5ea651f8df",
       "name": "Filtrar Cidade e Situacao Ativa",
@@ -1327,6 +1327,52 @@
         1200,
         1120
       ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "svn1",
+              "leftValue": "={{ !!$json._semResultadosNovos }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "6e6313c8-e2c0-45e1-b5c1-d1b88a30bb3c",
+      "name": "IF - Tem Resultados Novos",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        3008,
+        3080
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const search = $('Normalizar Busca').first().json;\nreturn [{ json: {\n  status: 'ok',\n  segmento: search.segmento,\n  estado: search.estado,\n  cidade: search.cidade,\n  total_encontrado: 0,\n  companies: []\n} }];"
+      },
+      "id": "7d2ebbb8-e33a-42bc-aa33-b13bc016ec73",
+      "name": "Formatar Resposta Vazia",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3200,
+        3080
+      ]
     }
   ],
   "connections": {
@@ -1407,7 +1453,7 @@
       "main": [
         [
           {
-            "node": "IF - Dados Completos da Minha Receita",
+            "node": "IF - Tem Resultados Novos",
             "type": "main",
             "index": 0
           }
@@ -1816,6 +1862,35 @@
         [
           {
             "node": "IF - Dados Completos da Minha Receita",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Tem Resultados Novos": {
+      "main": [
+        [
+          {
+            "node": "Formatar Resposta Vazia",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF - Dados Completos da Minha Receita",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatar Resposta Vazia": {
+      "main": [
+        [
+          {
+            "node": "Respond - Resultado da Busca",
             "type": "main",
             "index": 0
           }
