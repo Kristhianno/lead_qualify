@@ -532,6 +532,12 @@
           <option value="material_construcao">Material de Construção (Comércio)</option>
           <option value="papelaria">Papelaria</option>
           <option value="bares">Bares e Casas Noturnas</option>
+          <option value="representante_comercial">Representante Comercial</option>
+          <option value="jardinagem">Jardinagem e Paisagismo</option>
+          <option value="extintores">Extintores e Prevenção contra Incêndio</option>
+          <option value="ar_condicionado">Ar Condicionado (Instalação e Manutenção)</option>
+          <option value="instalacao_gas">Instalação de Gás</option>
+          <option value="revenda_gas">Revenda de Gás (GLP)</option>
         </select>
         <span class="field-error" id="err-segmento"></span>
       </div>
@@ -608,7 +614,8 @@
 
       <button type="submit" id="lookupBtn">Buscar empresa</button>
 
-      <p class="privacy-note">Busca por CNPJ consulta a Receita Federal em tempo real. Busca por razão
+      <p class="privacy-note">Busca por CNPJ é uma busca adicional: sempre consulta a Receita Federal em
+        tempo real e envia para sua planilha, mesmo que a empresa já esteja cadastrada. Busca por razão
         social/nome fantasia procura só entre as empresas já encontradas antes.</p>
     </form>
 
@@ -932,23 +939,10 @@
       lookupBtn.textContent = 'Buscando...';
 
       try {
-        const leadsSalvos = await buscarLeadsSalvos();
-
         if (isCnpj) {
-          const existente = leadsSalvos.find(lead => soDigitos(lead.cnpj) === digits);
-
-          if (existente) {
-            showResults(
-              [normalizarLeadSalvo(existente)],
-              lookupInfo,
-              '',
-              () => 'Empresa já cadastrada — dados mais recentes da sua planilha.'
-            );
-            return;
-          }
-
-          // Não achou salva -> consulta a Receita Federal em tempo real e roda o
-          // mesmo pipeline de qualificação/alerta/planilha da busca por segmento.
+          // Busca adicional: sempre consulta a Receita Federal em tempo real e roda o
+          // mesmo pipeline de qualificação/alerta/planilha da busca por segmento, mesmo
+          // que o CNPJ já esteja cadastrado — não é uma consulta ao que já está salvo.
           const response = await fetch(WEBHOOK_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -965,9 +959,10 @@
             companies,
             lookupInfo,
             'CNPJ não encontrado na Receita Federal.',
-            () => 'Empresa encontrada e adicionada à sua planilha.'
+            () => 'Empresa encontrada e enviada para sua planilha.'
           );
         } else {
+          const leadsSalvos = await buscarLeadsSalvos();
           const alvo = normalizarTexto(query);
           const encontrados = leadsSalvos.filter(lead =>
             normalizarTexto(lead.razao_social).includes(alvo) || normalizarTexto(lead.nome_fantasia).includes(alvo)
