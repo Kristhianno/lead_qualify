@@ -493,6 +493,27 @@
       return div.innerHTML;
     }
 
+    // A planilha pode ter linhas duplicadas de CNPJ (ex: buscas repetidas antes da
+    // validação no n8n existir). Mantém só a mais recente de cada CNPJ na exibição.
+    function dedupeByCnpj(leads) {
+      const soDigitos = (v) => (v || '').toString().replace(/\D/g, '');
+      const maisRecentePorCnpj = new Map();
+      leads.forEach((lead, index) => {
+        const chave = soDigitos(lead.cnpj) || `__sem-cnpj-${index}`;
+        const atual = maisRecentePorCnpj.get(chave);
+        if (!atual) {
+          maisRecentePorCnpj.set(chave, lead);
+          return;
+        }
+        const tAtual = new Date(atual.timestamp).getTime();
+        const tNovo = new Date(lead.timestamp).getTime();
+        if (!isNaN(tNovo) && (isNaN(tAtual) || tNovo >= tAtual)) {
+          maisRecentePorCnpj.set(chave, lead);
+        }
+      });
+      return Array.from(maisRecentePorCnpj.values());
+    }
+
     function buildCard(lead) {
       const empresaNome = lead.razao_social || lead.empresa || 'Empresa não identificada';
       const situacao = (lead.situacao_cadastral || '').toUpperCase();
@@ -570,7 +591,7 @@
         }
 
         const data = await response.json();
-        const leads = Array.isArray(data.leads) ? data.leads : [];
+        const leads = dedupeByCnpj(Array.isArray(data.leads) ? data.leads : []);
 
         renderBoard(leads);
         board.style.display = 'grid';
