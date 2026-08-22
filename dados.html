@@ -479,8 +479,9 @@
     };
 
     // Ordem fixa das colunas exibidas na tabela: CNPJ, Razão Social, Nome Fantasia,
-    // Telefone, Sócios, Porte, Estado, Cidade e Município. As demais colunas continuam
-    // existindo (hideInTable: true) para não perder dado nenhum na exportação para Excel.
+    // Telefone, Sócios, Porte, Capital Social, Segmento, Estado, Cidade e Município.
+    // As demais colunas continuam existindo (hideInTable: true) para não perder dado
+    // nenhum na exportação para Excel.
     const COLUMNS = [
       { key: 'cnpj', label: 'CNPJ' },
       { key: 'razao_social', label: 'Razão Social', wrap: true },
@@ -489,6 +490,8 @@
       { key: 'ddd_telefone_2', label: 'Telefone 2' },
       { key: 'socios', label: 'Sócios', wrap: true },
       { key: 'porte', label: 'Porte' },
+      { key: 'capital_social', label: 'Capital Social' },
+      { key: 'segmento', label: 'Segmento' },
       { key: 'uf', label: 'Estado' },
       { key: 'cidade', label: 'Cidade (busca)' },
       { key: 'municipio', label: 'Município' },
@@ -496,10 +499,8 @@
       { key: 'email', label: 'Email', hideInTable: true },
       { key: 'tier', label: 'Tier', hideInTable: true },
       { key: 'situacao_cadastral', label: 'Situação', hideInTable: true },
-      { key: 'capital_social', label: 'Capital Social', hideInTable: true },
       { key: 'cnae_descricao', label: 'CNAE (Descrição)', wrap: true, hideInTable: true },
       { key: 'cnae_fiscal', label: 'CNAE (Código)', hideInTable: true },
-      { key: 'segmento', label: 'Segmento', hideInTable: true },
       { key: 'fonte_enriquecimento', label: 'Fonte', hideInTable: true },
       { key: 'natureza_juridica', label: 'Natureza Jurídica', hideInTable: true },
       { key: 'descricao_identificador_matriz_filial', label: 'Matriz/Filial', hideInTable: true },
