@@ -678,11 +678,10 @@
     function buildResultCard(company) {
       const tier = TIER_INFO[company.tier] || { label: company.tier || 'Sem classificação', cls: '' };
 
-      const aiInsightHtml = (company.resumo_ia || company.abordagem_sugerida) ? `
+      const aiInsightHtml = company.abordagem_sugerida ? `
         <div class="ai-insight">
           <span class="ai-label">Sugestão da IA</span>
-          ${company.resumo_ia ? escapeHtml(company.resumo_ia) + '<br>' : ''}
-          ${company.abordagem_sugerida ? escapeHtml(company.abordagem_sugerida) : ''}
+          ${escapeHtml(company.abordagem_sugerida)}
         </div>` : '';
 
       return `

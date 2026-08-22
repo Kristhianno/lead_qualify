@@ -503,11 +503,10 @@
         lead.situacao_cadastral ? `<span class="tag ${situacaoClass}">${escapeHtml(lead.situacao_cadastral)}</span>` : ''
       ].join('');
 
-      const aiInsightHtml = (lead.resumo_ia || lead.abordagem_sugerida) ? `
+      const aiInsightHtml = lead.abordagem_sugerida ? `
         <div class="ai-insight">
           <span class="ai-label">Sugestão da IA</span>
-          ${lead.resumo_ia ? escapeHtml(lead.resumo_ia) + '<br>' : ''}
-          ${lead.abordagem_sugerida ? escapeHtml(lead.abordagem_sugerida) : ''}
+          ${escapeHtml(lead.abordagem_sugerida)}
         </div>` : '';
 
       return `
